@@ -1,15 +1,19 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const createError = require('http-errors');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
 
 require('dotenv').config();
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const swaggerUi = require('swagger-ui-express');
+const swaggerJsdoc = require('swagger-jsdoc');
 
-var app = express();
+const indexRouter = require('./routes/index');
+const uporabnikiRouter = require('./routes/uporabniki');
+const frizerjiRouter = require('./routes/frizerji');
+
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -21,8 +25,27 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Swagger setup
+const options = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'frizerski_salon API',
+      version: '1.0.0',
+      description: 'API za frizerski_salon',
+    },
+  },
+  apis: [path.join(__dirname, 'routes', '*.js')] // tukaj bodo routi z JSDoc komentarji
+};
+
+const specs = swaggerJsdoc(options);
+
+app.get('/test-swagger', (req, res) => res.send('Swagger middleware OK'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/uporabniki', uporabnikiRouter);
+app.use('/frizerji', frizerjiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -39,5 +62,8 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
+
+console.log('App loaded, registering routes and Swagger...');
+console.log(JSON.stringify(specs, null, 2));
 
 module.exports = app;
