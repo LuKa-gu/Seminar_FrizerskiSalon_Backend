@@ -32,7 +32,16 @@ const options = {
     info: {
       title: 'frizerski_salon API',
       version: '1.0.0',
-      description: 'API za frizerski_salon',
+      description: 'API dokumentacija za projekt frizerski_salon',
+    },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
     },
   },
   apis: [path.join(__dirname, 'routes', '*.js')] // tukaj bodo routi z JSDoc komentarji
@@ -40,7 +49,6 @@ const options = {
 
 const specs = swaggerJsdoc(options);
 
-app.get('/test-swagger', (req, res) => res.send('Swagger middleware OK'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use('/', indexRouter);
@@ -62,8 +70,5 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
-console.log('App loaded, registering routes and Swagger...');
-console.log(JSON.stringify(specs, null, 2));
 
 module.exports = app;

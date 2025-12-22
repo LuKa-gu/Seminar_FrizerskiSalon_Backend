@@ -7,7 +7,6 @@ async function uporabnikObstaja(Uporabnisko_ime_upor) {
             'SELECT Uporabnisko_ime FROM uporabniki WHERE Uporabnisko_ime = ?',
             [Uporabnisko_ime_upor]
         );
-        console.log('Rows from db:', rows);
         return rows.length > 0;
     } catch (err) {
         console.error('Database error in uporabnikObstaja:', err);
@@ -22,7 +21,6 @@ async function frizerObstaja(Uporabnisko_ime_friz) {
             'SELECT Uporabnisko_ime FROM frizerji WHERE Uporabnisko_ime = ?',
             [Uporabnisko_ime_friz]
         );
-        console.log('Rows from db:', rows);
         return rows.length > 0;
     } catch (err) {
         console.error('Database error in frizerObstaja:', err);
