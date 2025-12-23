@@ -12,6 +12,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const indexRouter = require('./routes/index');
 const uporabnikiRouter = require('./routes/uporabniki');
 const frizerjiRouter = require('./routes/frizerji');
+const storitveRouter = require('./routes/storitve');
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/', indexRouter);
 app.use('/uporabniki', uporabnikiRouter);
 app.use('/frizerji', frizerjiRouter);
+app.use('/storitve', storitveRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

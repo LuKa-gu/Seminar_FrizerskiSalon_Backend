@@ -21,8 +21,8 @@ function avtentikacijaJWT(req, res, next) {
     }
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Token ni veljaven ali je potekel.' });
+        if (err || !user || !user.ID) {
+            return res.status(401).json({ message: 'Token ni veljaven ali je potekel.' });
         }
 
         req.user = user;
@@ -30,7 +30,23 @@ function avtentikacijaJWT(req, res, next) {
     });
 }
 
+function dovoliRole(...dovoljeneRole) {
+    return (req, res, next) => {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({ message: 'Ni podatka o uporabnikovi vlogi.' });
+        }
+
+        if (!dovoljeneRole.includes(req.user.role)) {
+            return res.status(403).json({ message: 'Nimate pravic za to dejanje.' });
+        }
+
+        next();
+    };
+}
+
+
 module.exports = {
     generirajJWT,
-    avtentikacijaJWT
+    avtentikacijaJWT,
+    dovoliRole
 };

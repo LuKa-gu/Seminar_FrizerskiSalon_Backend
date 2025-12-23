@@ -28,6 +28,46 @@ async function frizerObstaja(Uporabnisko_ime_friz) {
     }
 }
 
+function createSlug(naziv) {
+    return naziv
+        .toLowerCase()
+        .normalize('NFD') // razdeli črke in diakritične znake
+        .replace(/[\u0300-\u036f]/g, '') // odstrani diakritične znake
+        .replace(/\s+/g, '-') // presledke zamenja z "-"
+        .replace(/[^a-z0-9-]/g, ''); // odstrani ostale posebne znake
+}
+
+// Naziv je v URL-ju kot /:id-slug
+// Slug je formatiran naziv za boljšo berljivost URL-ja
+// Iz URL-ja vzamemo samo ID za poizvedbo v bazi
+async function resolveStoritev(req, res, next) {
+    try {
+        const { naziv } = req.params;
+    
+        // dovolimo: ena ali več številk + "-" + ena ali več malih črk (in dodatni "-")
+        const match = naziv.match(/^(\d+)-([a-z]+(?:-[a-z]+)*)$/i);
+    
+        if (!match) {
+            return res.status(400).json({
+            message: 'Neveljaven format naziva storitve. Pričakovan format je id-slug.'
+            });
+        }
+    
+        const ID = Number(match[1]); // vzame samo ID
+    
+        const [rows] = await pool.execute('SELECT * FROM storitve WHERE ID = ?', [ID]);
+            
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Storitev ne obstaja.' });
+        }
+    
+        req.storitev = rows[0];
+        next();
+    } catch (err) {
+        next(err);
+    }
+}
+
 /**
  * urlVira(reqOrPath, optionalPath)
  * - če je prvi argument objekt req, sestavi URL iz req
@@ -67,5 +107,7 @@ function urlVira(reqOrPath, optionalPath) {
 module.exports = {
     uporabnikObstaja,
     frizerObstaja,
+    createSlug,
+    resolveStoritev,
     urlVira
 };

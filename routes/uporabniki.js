@@ -70,10 +70,27 @@ const bcrypt = require('bcrypt');
  *               properties:
  *                 message:
  *                   type: string
+ *                   example: Uporabnik uspešno dodan.
  *       400:
  *         description: Napačni ali manjkajoči podatki
+  *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Podatki manjkajo ali so napačni.
  *       409:
  *         description: Uporabniško ime že obstaja
+  *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Uporabniško ime že obstaja.
  *       500:
  *         description: Napaka na strežniku
  */
@@ -157,10 +174,36 @@ router.post('/signup', async (req, res, next) => {
  *     responses:
  *       200:
  *         description: Prijava uspešna
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Uspešna prijava.
  *       400:
  *         description: Manjkajoči podatki
+  *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Manjkajo podatki.
  *       401:
  *         description: Napačno uporabniško ime ali geslo
+  *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napačno uporabniško ime ali geslo.
+ *       500:
+ *         description: Napaka na strežniku
  */
 // Prijava uporabnika
 router.post('/login', async (req, res, next) => {
@@ -217,12 +260,27 @@ router.post('/login', async (req, res, next) => {
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Uporabnik je prijavljen
+ *         description: Frizer je prijavljen
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Frizer uspešno prijavljen.
  *       401:
- *         description: Manjka token
- *       403:
- *         description: Neveljaven ali potekel token
+ *         description: Neavtenticiran uporabnik
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ni tokena ali je neveljaven ali potekel.
  */
+// Avtentikacija uporabnika
 router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
     res.json({ 
         message: 'Uporabnik je prijavljen.', 
