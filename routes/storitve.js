@@ -8,15 +8,16 @@ const auth = require('../utils/auth.js');
  * @swagger
  * /storitve:
  *   get:
- *     summary: Pridobi seznam nazivov vseh storitev
+ *     summary: Pridobi seznam vseh storitev
  *     description: |
- *       Vrne seznam vseh storitev z njihovimi nazivi in URL-ji do podrobnosti.
+ *       Vrne seznam vseh storitev, ki so na voljo v sistemu. 
+ *       Vsaka storitev vsebuje enolični `ID`, `naziv` ter `URL` do podrobnosti storitve, ki se lahko uporablja za prikaz dodatnih informacij v uporabniškem vmesniku.
  *       URL vsebuje kombinacijo `ID` in formatiranega naziva (slug) za boljšo berljivost, npr. `12-zensko-strizenje`.
  *     tags:
  *       - Storitve
  *     responses:
  *       200:
- *         description: Seznam nazivov storitev in njihovih URL-jev
+ *         description: Uspešno pridobljen seznam storitev
  *         content:
  *           application/json:
  *             schema:
@@ -24,21 +25,28 @@ const auth = require('../utils/auth.js');
  *               items:
  *                 type: object
  *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 12
+ *                     description: Enolični ID storitve
  *                   naziv:
  *                     type: string
  *                     example: Žensko striženje
+ *                     description: Naziv storitve
  *                   url:
  *                     type: string
  *                     format: uri
  *                     example: http://localhost:3000/storitve/12-zensko-strizenje
+ *                     description: URL do podrobnosti storitve
  *       500:
  *         description: Napaka na strežniku
  */
-// Pridobivanje nazivov vseh storitev + link do podrobnosti
+// Pridobivanje id-jev in nazivov vseh storitev + link do podrobnosti
 router.get('/', async (req, res, next) => {
     try {
         const [rows] = await pool.execute('SELECT ID, Ime FROM storitve');
         const result = rows.map(row => ({
+            id: row.ID,
             naziv: row.Ime,
             url: utils.urlVira(req, `/storitve/${row.ID}-${utils.createSlug(row.Ime)}`)
         }));

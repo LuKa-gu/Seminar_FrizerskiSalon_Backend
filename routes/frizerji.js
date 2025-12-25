@@ -334,6 +334,52 @@ router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
 
 /**
  * @swagger
+ * /frizerji:
+ *   get:
+ *     summary: Pridobi seznam osebnih imen vseh frizerjev
+ *     description: |
+ *       Vrne seznam vseh frizerjev, ki so na voljo v sistemu.
+ *       Vsak frizer vsebuje enolični identifikator in njegovo ime ter priimek,
+ *       ki sta namenjena prikazu v uporabniškem vmesniku.
+ *     tags:
+ *       - Frizerji
+ *     responses:
+ *       200:
+ *         description: Uspešno pridobljen seznam frizerjev
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 3
+ *                     description: Enolični ID frizerja
+ *                   osebno_ime:
+ *                     type: string
+ *                     example: Janez Novak
+ *                     description: Ime in priimek frizerja
+ *       500:
+ *         description: Napaka na strežniku
+ */
+// Pridobivanje vseh frizerjev
+router.get('/', async (req, res, next) => {
+    try {
+        const [rows] = await pool.execute('SELECT ID, Ime, Priimek FROM frizerji');
+        const result = rows.map(row => ({
+            id: row.ID,
+            osebno_ime: `${row.Ime} ${row.Priimek}`
+        }));
+        res.json(result);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
  * /frizerji/info:
  *   get:
  *     summary: Pridobi informacije o vseh frizerjih

@@ -13,6 +13,7 @@ const indexRouter = require('./routes/index');
 const uporabnikiRouter = require('./routes/uporabniki');
 const frizerjiRouter = require('./routes/frizerji');
 const storitveRouter = require('./routes/storitve');
+const terminiRouter = require('./routes/termini');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/', indexRouter);
 app.use('/uporabniki', uporabnikiRouter);
 app.use('/frizerji', frizerjiRouter);
 app.use('/storitve', storitveRouter);
+app.use('/termini', terminiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
