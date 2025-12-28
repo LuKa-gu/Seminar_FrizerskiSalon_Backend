@@ -45,11 +45,13 @@ const auth = require('../utils/auth.js');
 router.get('/', async (req, res, next) => {
     try {
         const [rows] = await pool.execute('SELECT ID, Ime FROM storitve');
+
         const result = rows.map(row => ({
             id: row.ID,
             naziv: row.Ime,
             url: utils.urlVira(req, `/storitve/${row.ID}-${utils.createSlug(row.Ime)}`)
         }));
+
         res.json(result);
     } catch (err) {
         next(err);
