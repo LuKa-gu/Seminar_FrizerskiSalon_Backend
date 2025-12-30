@@ -68,6 +68,53 @@ async function resolveStoritev(req, res, next) {
     }
 }
 
+function casVMinute(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function minuteVCas(minutes) {
+    const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+    const m = String(minutes % 60).padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+function izracunajProsteBloke(delovniCas, rezervacije) {
+    let bloki = delovniCas.map(dc => ({
+        start: casVMinute(dc.Zacetek),
+        end: casVMinute(dc.Konec)
+    }));
+
+    for (const rez of rezervacije) {
+        const rezStart = casVMinute(rez.zacetek);
+        const rezEnd = casVMinute(rez.konec);
+
+        bloki = bloki.flatMap(blok => {
+            if (rezEnd <= blok.start || rezStart >= blok.end) {
+                return [blok];
+            }
+
+            const novi = [];
+            if (rezStart > blok.start) {
+                novi.push({ start: blok.start, end: rezStart });
+            }
+            if (rezEnd < blok.end) {
+                novi.push({ start: rezEnd, end: blok.end });
+            }
+            return novi;
+        });
+    }
+
+    return bloki;
+}
+
+function mozniZacetki(bloki, trajanje) {
+    return bloki
+        .filter(b => (b.end - b.start) >= trajanje)
+        .map(b => minuteVCas(b.start));
+}
+
+
 /**
  * urlVira(reqOrPath, optionalPath)
  * - če je prvi argument objekt req, sestavi URL iz req
@@ -109,5 +156,7 @@ module.exports = {
     frizerObstaja,
     createSlug,
     resolveStoritev,
+    izracunajProsteBloke,
+    mozniZacetki,
     urlVira
 };
