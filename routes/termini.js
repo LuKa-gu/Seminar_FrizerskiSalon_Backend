@@ -52,16 +52,26 @@ const auth = require('../utils/auth.js');
  *             schema:
  *               type: object
  *               properties:
- *                 trajanje:
+ *                 trajanje_num:
  *                   type: integer
  *                   example: 90
  *                   description: Skupno trajanje izbranih storitev (v minutah)
- *                 moznosti:
+ *                 razpolozljivi_bloki:
  *                   type: array
+ *                   minItems: 0
  *                   items:
- *                     type: string
- *                     example: "10:00"
- *                   description: Seznam možnih začetnih ur termina
+ *                     type: object
+ *                     properties:
+ *                       od:
+ *                         type: string
+ *                         example: "10:00"
+ *                       do:
+ *                         type: string
+ *                         example: "11:30"
+ *                   description: |
+ *                     Seznam časovnih intervalov, v katerih je možen začetek termina. 
+ *                     Uporabnik lahko izbere katerikoli čas med `"od"` in `"do"`. 
+ *                     Prazen seznam pomeni, da ta dan ni razpoložljivih terminov.
  *                 razlog:
  *                   type: string
  *                   nullable: true
@@ -154,6 +164,8 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
             return res.status(400).json({ message: 'Neveljavne storitve.' });
         }
 
+        const trajanje_num = Number(trajanje);
+
         // Pridobi delovni čas
         const [delovnik] = await pool.query(`
             SELECT Zacetek, Konec
@@ -163,7 +175,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         );
 
         if (delovnik.length === 0) {
-            return res.json({ trajanje, moznosti: [], razlog: 'Frizer ne dela ta dan.' });
+            return res.json({ trajanje_num, razpolozljivi_bloki: [], razlog: 'Frizer ne dela ta dan.' });
         }
 
         // Pridobi obstoječe rezervacije + njihovo trajanje
@@ -185,14 +197,14 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         );
 
         // Izračunaj proste bloke
-        const prostiBloki = utils.izracunajProsteBloke(delovnik, rezervacije);
+        const prosti_bloki = utils.izracunajProsteBloke(delovnik, rezervacije);
 
         // Izračunaj možne začetke
-        const moznosti = utils.mozniZacetki(prostiBloki, trajanje);
+        const razpolozljivi_bloki = utils.razpolozljiviBloki(prosti_bloki, trajanje_num);
 
         res.json({
-            trajanje,
-            moznosti
+            trajanje_num,
+            razpolozljivi_bloki
         });
 
     } catch (err) {
@@ -795,7 +807,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
 router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
     try {
         const uporabnik_ID = req.user.ID;
-
+        //DATE_FORMAT(t.Cas_termina, '%Y-%m-%d %H:%i:%s') AS Cas_termina,
         const [rows] = await pool.query(`
         SELECT
          t.ID AS termin_ID,

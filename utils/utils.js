@@ -108,12 +108,14 @@ function izracunajProsteBloke(delovniCas, rezervacije) {
     return bloki;
 }
 
-function mozniZacetki(bloki, trajanje) {
+function razpolozljiviBloki(bloki, trajanje) {
     return bloki
         .filter(b => (b.end - b.start) >= trajanje)
-        .map(b => minuteVCas(b.start));
+        .map(b => ({
+            od: minuteVCas(b.start),
+            do: minuteVCas(b.end - trajanje)
+        }));
 }
-
 
 /**
  * urlVira(reqOrPath, optionalPath)
@@ -157,6 +159,6 @@ module.exports = {
     createSlug,
     resolveStoritev,
     izracunajProsteBloke,
-    mozniZacetki,
+    razpolozljiviBloki,
     urlVira
 };

@@ -14,6 +14,7 @@ const uporabnikiRouter = require('./routes/uporabniki');
 const frizerjiRouter = require('./routes/frizerji');
 const storitveRouter = require('./routes/storitve');
 const terminiRouter = require('./routes/termini');
+const delovnikiRouter = require('./routes/delovniki');
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use('/uporabniki', uporabnikiRouter);
 app.use('/frizerji', frizerjiRouter);
 app.use('/storitve', storitveRouter);
 app.use('/termini', terminiRouter);
+app.use('/delovniki', delovnikiRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

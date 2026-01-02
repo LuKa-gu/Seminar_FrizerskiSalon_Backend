@@ -60,23 +60,24 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @swagger
- * /storitve/{naziv}:
+ * /storitve/{id-naziv}:
  *   get:
  *     summary: Pridobi podrobnosti določene storitve
  *     description: |
  *       Vrne vse podatke določene storitve.
- *       Parameter `naziv` je v obliki `id-slug`, kjer se za poizvedbo uporabi samo `id`.
+ *       Parameter v URL-ju je kombinacija `id-naziv`, kjer se za poizvedbo uporabi samo `id`.
+ *       Parameter `naziv` je v obliki `slug`, torej formatiran za boljšo berljivost.
  *       Primer: `12-zensko-strizenje`
  *     tags:
  *       - Storitve
  *     parameters:
  *       - in: path
- *         name: naziv
+ *         name: id-naziv
  *         required: true
  *         schema:
  *           type: string
  *           pattern: '^\d+-[a-z]+(?:-[a-z]+)*$'
- *         description: Identifikator storitve v obliki `id-slug`
+ *         description: Identifikator storitve v obliki `id-naziv`
  *         example: 12-zensko-strizenje
  *     responses:
  *       200:
@@ -110,7 +111,7 @@ router.get('/', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Neveljaven format naziva storitve. Pričakovan format je id-slug.
+ *                   example: Neveljaven format naziva storitve. Pričakovan format je `id-slug`.
  *       404:
  *         description: Storitev ne obstaja
  *         content:
@@ -125,18 +126,19 @@ router.get('/', async (req, res, next) => {
  *         description: Napaka na strežniku
  */
 // Pridobivanje podrobnosti določene storitve glede na naziv
-router.get('/:naziv', utils.resolveStoritev, (req, res) => {
+router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
     res.json(req.storitev);
 });
 
 /**
  * @swagger
- * /storitve/{naziv}:
+ * /storitve/{id-naziv}:
  *   put:
  *     summary: Posodobi določeno storitev
  *     description: |
- *       Omogoča posodobitev podatkov določene storitve.  
- *       Parameter `naziv` je v obliki `id-slug`, kjer se za poizvedbo uporabi samo `id`.  
+ *       Omogoča posodobitev podatkov določene storitve.
+ *       Parameter v URL-ju je kombinacija `id-naziv`, kjer se za poizvedbo uporabi samo `id`.  
+ *       Parameter `naziv` je v obliki `slug`, torej formatiran za boljšo berljivost.  
  *       Primer: `12-zensko-strizenje`
  *     tags:
  *       - Storitve
@@ -144,12 +146,12 @@ router.get('/:naziv', utils.resolveStoritev, (req, res) => {
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: naziv
+ *         name: id-naziv
  *         required: true
  *         schema:
  *           type: string
  *           pattern: '^\d+-[a-z]+(?:-[a-z]+)*$'
- *         description: Identifikator storitve v obliki `id-slug`
+ *         description: Identifikator storitve v obliki `id-naziv`
  *         example: 12-zensko-strizenje
  *     requestBody:
  *       required: true
@@ -222,7 +224,7 @@ router.get('/:naziv', utils.resolveStoritev, (req, res) => {
  *         description: Napaka na strežniku
  */
 // Posodabljanje storitev
-router.put('/:naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
+router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
     try {
         const { Opis, Trajanje, Cena } = req.body;
 
@@ -244,12 +246,13 @@ router.put('/:naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.re
 
 /**
  * @swagger
- * /storitve/{naziv}:
+ * /storitve/{id-naziv}:
  *   delete:
  *     summary: Izbriši določeno storitev
  *     description: |
- *       Omogoča brisanje določene storitve.  
- *       Parameter `naziv` je v obliki `id-slug`, kjer se za poizvedbo uporabi samo `id`.  
+ *       Omogoča brisanje določene storitve.
+ *       Parameter v URL-ju je kombinacija `id-naziv`, kjer se za poizvedbo uporabi samo `id`.  
+ *       Parameter `naziv` je v obliki `slug`, torej formatiran za boljšo berljivost.  
  *       Primer: `12-zensko-strizenje`
  *     tags:
  *       - Storitve
@@ -257,12 +260,12 @@ router.put('/:naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.re
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: naziv
+ *         name: id-naziv
  *         required: true
  *         schema:
  *           type: string
  *           pattern: '^\d+-[a-z]+(?:-[a-z]+)*$'
- *         description: Identifikator storitve v obliki `id-slug`
+ *         description: Identifikator storitve v obliki `id-naziv`
  *         example: 12-zensko-strizenje
  *     responses:
  *       200:
@@ -319,7 +322,7 @@ router.put('/:naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.re
  *         description: Napaka na strežniku
  */
 // Brisanje storitev
-router.delete('/:naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
+router.delete('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
     try {
         await pool.execute('DELETE FROM storitve WHERE ID = ?', [req.storitev.ID]);
 

@@ -469,7 +469,7 @@ router.get('/info', async (req, res, next) => {
                 s.ID AS specializacija_id,
                 s.Naziv AS specializacija,
                 d.ID AS delovnik_id,
-                d.Dan,
+                DATE_FORMAT(d.Dan, '%Y-%m-%d') AS Dan,
                 d.Zacetek,
                 d.Konec
             FROM frizerji f
@@ -513,9 +513,7 @@ router.get('/info', async (req, res, next) => {
             ) {
                 frizerji[row.frizer_id].delovniki.push({
                     id: row.delovnik_id,
-                    dan: row.Dan instanceof Date 
-                        ? row.Dan.toISOString().split('T')[0] // Formatiranje datuma kot YYYY-MM-DD
-                        : row.Dan, // V primeru, da je string
+                    dan: row.Dan,
                     zacetek: row.Zacetek,
                     konec: row.Konec
                 });
