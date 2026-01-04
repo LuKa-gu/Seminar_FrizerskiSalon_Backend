@@ -23,36 +23,41 @@ const auth = require('../utils/auth.js');
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   ID:
- *                     type: integer
- *                     example: 1
- *                     description: Enolični ID delovnika
- *                   Dan:
- *                     type: string
- *                     format: date
- *                     example: "2025-11-24"
- *                     description: Datum delovnika
- *                   Zacetek:
- *                     type: string
- *                     format: time
- *                     example: "08:00:00"
- *                     description: Začetek delovnika
- *                   Konec:
- *                     type: string
- *                     format: time
- *                     example: "12:00:00"
- *                     description: Konec delovnika
- *                   Url:
- *                     type: string
- *                     format: uri
- *                     example: http://localhost:3000/delovniki/12
- *                     description: Url za posodobitev ali brisanje delovnika
+ *               type: object
+ *               properties:
+ *                 delovniki_url:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ID:
+ *                         type: integer
+ *                         example: 1
+ *                         description: Enolični ID delovnika
+ *                       Dan:
+ *                         type: string
+ *                         example: "2025-11-24"
+ *                         description: Datum delovnika
+ *                       Zacetek:
+ *                         type: string
+ *                         example: "08:00:00"
+ *                         description: Začetek delovnika
+ *                       Konec:
+ *                         type: string
+ *                         example: "12:00:00"
+ *                         description: Konec delovnika
+ *                       Url:
+ *                         type: string
+ *                         format: uri
+ *                         example: http://localhost:3000/delovniki/12
+ *                         description: Url za posodobitev ali brisanje delovnika
+ *                 message:
+ *                   type: string
+ *                   nullable: true
+ *                   example: Rezerviran ni noben delovnik.
+ *                   description: Sporočilo ob praznem seznamu delovniki_url
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -62,7 +67,7 @@ const auth = require('../utils/auth.js');
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:
@@ -71,16 +76,6 @@ const auth = require('../utils/auth.js');
  *                 message:
  *                   type: string
  *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
- *       404:
- *         description: Ni rezerviranih delovnikov
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: Rezerviran ni noben delovnik.
  *       500:
  *         description: Napaka na strežniku
  */
@@ -98,7 +93,8 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
         );
 
         if (rows.length === 0) {
-            return res.status(404).json({
+            return res.json({
+                delovniki_url: [],
                 message: 'Rezerviran ni noben delovnik.'
             });
         }
@@ -143,17 +139,14 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *             properties:
  *               dan:
  *                 type: string
- *                 format: date
  *                 example: "2025-11-24"
  *                 description: Datum delovnika
  *               zacetek:
  *                 type: string
- *                 format: time
  *                 example: "08:00"
  *                 description: Začetek delovnika
  *               konec:
  *                 type: string
- *                 format: time
  *                 example: "12:00"
  *                 description: Konec delovnika
  *     responses:
@@ -175,15 +168,12 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *                       example: 1
  *                     dan:
  *                       type: string
- *                       format: date
  *                       example: "2025-11-24"
  *                     zacetek:
  *                       type: string
- *                       format: time
  *                       example: "08:00"
  *                     konec:
  *                       type: string
- *                       format: time
  *                       example: "12:00"
  *       400:
  *         description: Napačni ali manjkajoči podatki
@@ -196,7 +186,7 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *                   type: string
  *                   example: Začetek mora biti pred koncem.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -206,7 +196,7 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:
@@ -318,17 +308,14 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
  *             properties:
  *               dan:
  *                 type: string
- *                 format: date
  *                 example: "2025-11-24"
  *                 description: Posodobljen datum delovnika
  *               zacetek:
  *                 type: string
- *                 format: time
  *                 example: "08:00"
  *                 description: Posodobljen začetek delovnika
  *               konec:
  *                 type: string
- *                 format: time
  *                 example: "12:00"
  *                 description: Posodobljen konec delovnika
  *     responses:
@@ -353,7 +340,7 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
  *                   type: string
  *                   example: Manjkajoči podatki.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -363,7 +350,7 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:
@@ -496,7 +483,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
  *                   type: string
  *                   example: Delovnik uspešno izbrisan.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -506,7 +493,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:

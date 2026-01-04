@@ -314,7 +314,7 @@ router.post('/login', async (req, res, next) => {
  *                   type: string
  *                   example: Frizer uspešno prijavljen.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -441,15 +441,12 @@ router.get('/', async (req, res, next) => {
  *                           example: 1
  *                         dan:
  *                           type: string
- *                           format: date
  *                           example: 2025-11-24
  *                         zacetek:
  *                           type: string
- *                           format: time
  *                           example: "08:00:00"
  *                         konec:
  *                           type: string
- *                           format: time
  *                           example: "16:00:00"
  *       500:
  *         description: Napaka na strežniku
@@ -521,6 +518,508 @@ router.get('/info', async (req, res, next) => {
         }
 
         res.json(Object.values(frizerji));
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /frizerji/termini:
+ *   get:
+ *     summary: Pridobi termine frizerja za določen dan
+ *     description: Vrne seznam terminov za prijavljenega frizerja za določen datum. Za vsak termin vrne `uro`, `ime` in `priimek` stranke ter `URL` do podrobnosti termina.
+ *     tags:
+ *       - Frizerji
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: dan
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Datum za katerega želimo pridobiti termine
+ *         example: "2026-01-03"
+ *     responses:
+ *       200:
+ *         description: Uspešno pridobljen seznam terminov
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 termini:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       ura:
+ *                         type: string
+ *                         example: "10:30:00"
+ *                         description: Čas začetka termina
+ *                       stranka:
+ *                         type: string
+ *                         example: "Janez Novak"
+ *                         description: Ime in priimek stranke
+ *                       url:
+ *                         type: string
+ *                         format: uri
+ *                         example: "http://localhost:3000/frizerji/termini/1"
+ *                         description: URL do podrobnosti termina
+ *                 message:
+ *                   type: string
+ *                   nullable: true
+ *                   example: Ni terminov za ta dan.
+ *                   description: Sporočilo ob praznem seznamu terminov
+ *       400:
+ *         description: Manjkajoč ali neveljaven datum
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Neveljaven datum. Uporabi format YYYY-MM-DD.
+ *       401:
+ *         description: Neavtenticiran frizer
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ni tokena ali je neveljaven ali potekel.
+ *       403:
+ *         description: Frizer nima ustreznih pravic
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
+ *       500:
+ *         description: Napaka na strežniku
+ */
+router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
+    try {
+        const dan = req.query.dan; // datum v obliki 'YYYY-MM-DD' iz query stringa
+        const frizerId = req.user.ID;
+
+        if (!dan) {
+            return res.status(400).json({ message: 'Manjkajoč datum.' });
+        }
+
+        // Preverimo, če je format datuma veljaven
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dan)) {
+            return res.status(400).json({ message: 'Neveljaven datum. Uporabi format YYYY-MM-DD.' });
+        }
+
+        const [y, m, d] = dan.split('-').map(Number);
+        if (y < 2025 || y > 2026 || m < 1 || m > 12 || d < 1 || d > 31) {
+            return res.status(400).json({ error: 'Neveljaven datum.' });
+        }
+
+        const [rows] = await pool.execute(`
+            SELECT t.ID, TIME(t.Cas_termina) AS Ura, u.Ime, u.Priimek
+            FROM termini t
+            JOIN uporabniki u ON t.Uporabniki_id = u.ID
+            WHERE t.Frizerji_id = ? AND DATE(t.Cas_termina) = ?
+            ORDER BY t.Cas_termina ASC`, 
+            [frizerId, dan]);
+
+        if (rows.length === 0) {
+            return res.json({
+                termini: [],
+                message: 'Ni terminov za ta dan.'
+            });
+        }
+
+        const termini = rows.map(row => ({
+            ura: row.Ura,
+            stranka: row.Ime + ' ' + row.Priimek,
+            url: utils.urlVira(req, `/frizerji/termini/${row.ID}`)
+        }));
+
+        res.json(termini);
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /frizerji/termini/{id}:
+ *   get:
+ *     summary: Pridobi podrobnosti določenega termina
+ *     description: |
+ *       Vrne podrobnosti določenega termina glede na parameter `id` v URL-ju.
+ *       Sistem vrne ime in priimek stranke, uro termina, seznam storitev, ki vsebuje naziv, trajanje in ceno vsake storitve.
+ *       Prav tako vrne skupno trajanje in ceno storitev, morebitne opombe, kontakt stranke, ki vsebuje telefon in mail, ter status termina.
+ *       Sistem vrne še URL naslov za spremembo statusa termina.
+ *     tags:
+ *       - Frizerji
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Identifikator termina, za katerega želimo pridobiti podrobnosti
+ *         example: 11
+ *     responses:
+ *       200:
+ *         description: Podrobnosti termina
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   termin_id:
+ *                     type: integer
+ *                     example: 12
+ *                   stranka:
+ *                     type: string
+ *                     example: Ana Novak
+ *                   ura:
+ *                     type: string
+ *                     example: "10:00:00"
+ *                   storitve:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           example: 1
+ *                         naziv:
+ *                           type: string
+ *                           example: Striženje
+ *                         trajanje:
+ *                           type: integer
+ *                           example: 30
+ *                         cena:
+ *                           type: number
+ *                           example: 15
+ *                   skupno_trajanje:
+ *                     type: integer
+ *                     example: 75
+ *                   skupna_cena:
+ *                     type: number
+ *                     example: 45
+ *                   opombe:
+ *                     type: string
+ *                     nullable: true
+ *                     example: Prosim krajše ob straneh
+ *                   kontakt:
+ *                     type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         telefon:
+ *                           type: string
+ *                           example: "+38640123456"
+ *                         mail:
+ *                           type: string
+ *                           format: email
+ *                           example: miha.novak@email.com
+ *                   status:
+ *                     type: string
+ *                     example: Rezervirano
+ *                   sprememba_url:
+ *                     type: string
+ *                     format: uri
+ *                     example: http://localhost:3000/frizerji/termini/12
+ *                     description: URL do spremembe statusa termina
+ *       401:
+ *         description: Neavtenticiran frizer
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ni tokena ali je neveljaven ali potekel.
+ *       403:
+ *         description: Frizer nima ustreznih pravic
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
+ *       404:
+ *         description: Termin ne obstaja
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Termin ne obstaja.
+ *       500:
+ *         description: Napaka na strežniku
+ */
+router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
+    try {
+        const terminId = req.params.id;
+        const frizerId = req.user.ID;
+
+        // Termin + uporabnik
+        const [terminRows] = await pool.execute(`
+            SELECT 
+                t.ID,
+                TIME(t.Cas_termina) AS Ura,
+                t.Opombe,
+                t.Status,
+                u.Ime,
+                u.Priimek,
+                u.Telefon,
+                u.Mail
+            FROM termini t
+            JOIN uporabniki u ON u.ID = t.Uporabniki_id
+            WHERE t.ID = ? AND t.Frizerji_id = ?`, 
+        [terminId, frizerId]);
+
+        if (terminRows.length === 0) {
+            return res.status(404).json({ message: 'Termin ne obstaja.' });
+        }
+
+        // Storitve za termin
+        const [storitveRows] = await pool.execute(`
+            SELECT
+                s.ID,
+                s.Ime,
+                s.Trajanje,
+                s.Cena
+            FROM termini_storitve ts
+            JOIN storitve s ON s.ID = ts.Storitve_id
+            WHERE ts.Termini_id = ?`,
+        [terminId]);
+
+        // Seštevek
+        const [sumRows] = await pool.execute(`
+            SELECT
+                SUM(s.Trajanje) AS skupno_trajanje,
+                SUM(s.Cena) AS skupna_cena
+            FROM termini_storitve ts
+            JOIN storitve s ON s.ID = ts.Storitve_id
+            WHERE ts.Termini_id = ?`,
+        [terminId]);
+
+        const skupno_trajanje = Number(sumRows[0].skupno_trajanje);
+        const skupna_cena = Number(sumRows[0].skupna_cena);
+
+        res.json({
+            termin_id: terminRows[0].ID,
+            stranka: `${terminRows[0].Ime} ${terminRows[0].Priimek}`,
+            ura: terminRows[0].Ura,
+            storitve: storitveRows.map(s => ({ 
+                id: s.ID,
+                naziv: s.Ime,
+                trajanje: s.Trajanje,
+                cena: Number(s.Cena)
+            })), 
+            skupno_trajanje,
+            skupna_cena,
+            opombe: terminRows[0].Opombe || null,
+            kontakt: {
+                telefon: terminRows[0].Telefon,
+                mail: terminRows[0].Mail
+            },
+            status: terminRows[0].Status,
+            sprememba_url: utils.urlVira(req, `/frizerji/termini/${terminRows[0].ID}`)
+        });
+
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /frizerji/termini/{id}:
+ *   patch:
+ *     summary: Sprememba statusa termina
+ *     description: |
+ *       Spremeni status rezerviranega termina iz `Rezervirano` v `Preklicano`, `V izvajanju` ali `Zaključeno`, ali iz `V izvajanju` v `Zaključeno`.
+ *       V primeru uspešne spremembe statusa se vrne sporočilo o uspešni spremembi ter star in nov status.
+ *     tags:
+ *       - Frizerji
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID termina za spremembo statusa
+ *         example: 13
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 example: 'V izvajanju'
+ *                 description: Posodobljen status termina
+ *     responses:
+ *       200:
+ *         description: Status termina uspešno posodobljen
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Status termina je bil uspešno posodobljen.
+ *                   description: Sporočilo ob uspehu
+ *                 termin_id:
+ *                   type: boolean
+ *                   example: true
+ *                   description: ID posodobljenega termina
+ *                 prejsnji_status:
+ *                   type: string
+ *                   example: 'Rezervirano'
+ *                   description: Prejšnji status termina
+ *                 novi_status:
+ *                   type: string
+ *                   example: 'V izvajanju'
+ *                   description: Posodobljeni status termina
+ *       400:
+ *         description: Neveljaven status za spremembo termina
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Neveljaven status.
+ *       401:
+ *         description: Neavtenticiran frizer
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ni tokena ali je neveljaven ali potekel.
+ *       403:
+ *         description: Frizer nima ustreznih pravic
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
+ *       404:
+ *         description: Termin ne obstaja
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Termin ne obstaja.
+ *       409:
+ *         description: Sprememba statusa termina ni mogoča, ker prehod iz prejšnjega v nov status ni dovoljen
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Prehod iz statusa 'Preklicano' v 'Rezervirano' ni dovoljen.
+ *       500:
+ *         description: Napaka na strežniku
+ */
+router.patch('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async(req, res, next) => {
+    try {
+        const terminId = req.params.id;
+        const frizerId = req.user.ID;
+        const { status: novStatus } = req.body;
+
+        // Validacija inputa
+        const dovoljeniStatusi = [
+            'Rezervirano',
+            'Preklicano',
+            'V izvajanju',
+            'Zaključeno'
+        ];
+
+        if (!dovoljeniStatusi.includes(novStatus)) {
+            return res.status(400).json({
+                message: 'Neveljaven status.'
+            });
+        }
+
+        // preveri termin (obstoj, lastništvo, trenutni status)
+        const [terminRows] = await pool.execute(`
+            SELECT Status
+            FROM termini
+            WHERE ID = ? AND Frizerji_id = ?
+        `, [terminId, frizerId]);
+
+        if (terminRows.length === 0) {
+            return res.status(404).json({
+                message: 'Termin ne obstaja.'
+            });
+        }
+
+        const trenutniStatus = terminRows[0].Status;
+
+        // preveri dovoljen prehod
+        const dovoljeniPrehodi = {
+            Rezervirano: ['Preklicano', 'V izvajanju', 'Zaključeno'],
+            'V izvajanju': ['Zaključeno'],
+            Zaključeno: [],
+            Preklicano: []
+        };
+
+        if (!dovoljeniPrehodi[trenutniStatus].includes(novStatus)) {
+            return res.status(409).json({
+                message: `Prehod iz statusa '${trenutniStatus}' v '${novStatus}' ni dovoljen.`
+            });
+        }
+
+        // posodobi status
+        await pool.execute(`
+            UPDATE termini
+            SET Status = ?
+            WHERE ID = ?
+        `, [novStatus, terminId]);
+
+        // odgovor
+        res.status(200).json({
+            message: 'Status termina je bil uspešno posodobljen.',
+            termin_id: terminId,
+            prejsnji_status: trenutniStatus,
+            novi_status: novStatus
+        });
+
     } catch (err) {
         next(err);
     }

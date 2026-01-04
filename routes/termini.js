@@ -23,10 +23,6 @@ const auth = require('../utils/auth.js');
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - frizer_ID
- *               - dan
- *               - storitve
  *             properties:
  *               frizer_ID:
  *                 type: integer
@@ -34,7 +30,6 @@ const auth = require('../utils/auth.js');
  *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
- *                 format: date
  *                 example: 2025-06-10
  *                 description: Datum, za katerega se preverja razpoložljivost (YYYY-MM-DD)
  *               storitve:
@@ -231,11 +226,6 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - frizer_ID
- *               - dan
- *               - ura
- *               - storitve
  *             properties:
  *               frizer_ID:
  *                 type: integer
@@ -243,7 +233,6 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
- *                 format: date
  *                 example: 2025-01-23
  *                 description: Datum termina (YYYY-MM-DD)
  *               ura:
@@ -503,7 +492,6 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
- *                 format: date
  *                 example: 2025-01-23
  *                 description: Datum termina (YYYY-MM-DD)
  *               ura:
@@ -757,12 +745,10 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *                           example: 15
  *                   zacetek_termina:
  *                     type: string
- *                     format: date-time
- *                     example: 2025-06-10T14:00:00.000Z
+ *                     example: 2025-06-10 14:00:00
  *                   konec_termina:
  *                     type: string
- *                     format: date-time
- *                     example: 2025-06-10T15:15:00.000Z
+ *                     example: 2025-06-10 15:15:00
  *                   skupno_trajanje:
  *                     type: integer
  *                     example: 75
@@ -807,7 +793,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
 router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
     try {
         const uporabnik_ID = req.user.ID;
-        //DATE_FORMAT(t.Cas_termina, '%Y-%m-%d %H:%i:%s') AS Cas_termina,
+
         const [rows] = await pool.query(`
         SELECT
          t.ID AS termin_ID,
@@ -864,8 +850,8 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
                 termin_ID: t.termin_ID,
                 frizer: t.frizer,
                 storitve: t.storitve,
-                zacetek_termina: t.zacetek_termina,
-                konec_termina: konec,
+                zacetek_termina: t.zacetek_termina.toLocaleString('sv-SE', { timeZone: 'Europe/Ljubljana' }).replace('T', ' '),
+                konec_termina: konec.toLocaleString('sv-SE', { timeZone: 'Europe/Ljubljana' }).replace('T', ' '),
                 skupno_trajanje: t.skupno_trajanje,
                 skupna_cena: t.skupna_cena,
                 opombe: t.opombe,

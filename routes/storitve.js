@@ -60,7 +60,7 @@ router.get('/', async (req, res, next) => {
 
 /**
  * @swagger
- * /storitve/{id-naziv}:
+ * /storitve/{idNaziv}:
  *   get:
  *     summary: Pridobi podrobnosti določene storitve
  *     description: |
@@ -72,7 +72,7 @@ router.get('/', async (req, res, next) => {
  *       - Storitve
  *     parameters:
  *       - in: path
- *         name: id-naziv
+ *         name: idNaziv
  *         required: true
  *         schema:
  *           type: string
@@ -126,13 +126,13 @@ router.get('/', async (req, res, next) => {
  *         description: Napaka na strežniku
  */
 // Pridobivanje podrobnosti določene storitve glede na naziv
-router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
+router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
     res.json(req.storitev);
 });
 
 /**
  * @swagger
- * /storitve/{id-naziv}:
+ * /storitve/{idNaziv}:
  *   put:
  *     summary: Posodobi določeno storitev
  *     description: |
@@ -146,7 +146,7 @@ router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id-naziv
+ *         name: idNaziv
  *         required: true
  *         schema:
  *           type: string
@@ -191,7 +191,7 @@ router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
  *                   type: string
  *                   example: Neveljaven format naziva storitve ali podatkov za posodobitev.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -201,7 +201,7 @@ router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:
@@ -224,7 +224,7 @@ router.get('/:id-naziv', utils.resolveStoritev, (req, res) => {
  *         description: Napaka na strežniku
  */
 // Posodabljanje storitev
-router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
+router.put('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
     try {
         const { Opis, Trajanje, Cena } = req.body;
 
@@ -246,7 +246,7 @@ router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils
 
 /**
  * @swagger
- * /storitve/{id-naziv}:
+ * /storitve/{idNaziv}:
  *   delete:
  *     summary: Izbriši določeno storitev
  *     description: |
@@ -260,7 +260,7 @@ router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id-naziv
+ *         name: idNaziv
  *         required: true
  *         schema:
  *           type: string
@@ -289,7 +289,7 @@ router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils
  *                   type: string
  *                   example: Neveljaven format naziva storitve.
  *       401:
- *         description: Neavtenticiran uporabnik
+ *         description: Neavtenticiran frizer
  *         content:
  *           application/json:
  *             schema:
@@ -299,7 +299,7 @@ router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils
  *                   type: string
  *                   example: Ni tokena ali je neveljaven ali potekel.
  *       403:
- *         description: Uporabnik nima ustreznih pravic
+ *         description: Frizer nima ustreznih pravic
  *         content:
  *           application/json:
  *             schema:
@@ -322,7 +322,7 @@ router.put('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils
  *         description: Napaka na strežniku
  */
 // Brisanje storitev
-router.delete('/:id-naziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
+router.delete('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
     try {
         await pool.execute('DELETE FROM storitve WHERE ID = ?', [req.storitev.ID]);
 

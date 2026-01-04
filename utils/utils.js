@@ -42,10 +42,10 @@ function createSlug(naziv) {
 // Iz URL-ja vzamemo samo ID za poizvedbo v bazi
 async function resolveStoritev(req, res, next) {
     try {
-        const { naziv } = req.params;
+        const { idNaziv } = req.params;
     
         // dovolimo: ena ali več številk + "-" + ena ali več besed iz malih črk (in dodatni "-")
-        const match = naziv.match(/^(\d+)-([a-z]+(?:-[a-z]+)*)$/i);
+        const match = idNaziv.match(/^(\d+)-([a-z]+(?:-[a-z]+)*)$/i);
     
         if (!match) {
             return res.status(400).json({
