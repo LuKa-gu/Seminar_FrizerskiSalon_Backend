@@ -114,8 +114,16 @@ const auth = require('../utils/auth.js');
  *                   example: Izbrani frizer ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
+router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const { frizer_ID, dan, storitve } = req.body;
 
@@ -124,7 +132,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         }
 
         // Preveri, ali frizer obstaja
-        const [[frizer]] = await pool.query(`
+        const [[frizer]] = await pool.execute(`
             SELECT ID 
             FROM frizerji 
             WHERE ID = ?`,
@@ -135,7 +143,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         }
 
         // Preveri, ali frizer izvaja izbrane storitve
-        const [frizer_storitve] = await pool.query(`
+        const [frizer_storitve] = await pool.execute(`
             SELECT s.ID 
             FROM storitve s
             JOIN specializacija sp ON s.Ime = sp.Naziv
@@ -148,7 +156,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         }
 
         // Izračunaj skupno trajanje storitev
-        const [[{ trajanje }]] = await pool.query(`
+        const [[{ trajanje }]] = await pool.execute(`
             SELECT SUM(Trajanje) AS trajanje
             FROM storitve
             WHERE ID IN (?)`,
@@ -162,7 +170,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         const trajanje_num = Number(trajanje);
 
         // Pridobi delovni čas
-        const [delovnik] = await pool.query(`
+        const [delovnik] = await pool.execute(`
             SELECT Zacetek, Konec
             FROM delovnik
             WHERE Frizerji_id = ? AND Dan = ?`,
@@ -174,7 +182,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         }
 
         // Pridobi obstoječe rezervacije + njihovo trajanje
-        const [rezervacije] = await pool.query(`
+        const [rezervacije] = await pool.execute(`
             SELECT 
                 TIME(t.Cas_termina) AS zacetek,
                 ADDTIME(
@@ -203,8 +211,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Napaka pri preverjanju razpoložljivosti.' });
+        next(err);
     }
 });
 
@@ -347,8 +354,16 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *                   example: Izbrani termin ni na voljo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
+router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const { frizer_ID, dan, ura, storitve, opombe } = req.body;
 
@@ -359,7 +374,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         const cas_termina = `${dan} ${ura}:00`;
 
         // Frizer
-        const [[frizer]] = await pool.query(`
+        const [[frizer]] = await pool.execute(`
             SELECT Ime, Priimek 
             FROM frizerji 
             WHERE ID = ?`,
@@ -370,7 +385,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Storitve
-        const [storitveRows] = await pool.query(`
+        const [storitveRows] = await pool.execute(`
             SELECT ID, Ime, Cena, Trajanje 
             FROM storitve 
             WHERE ID IN (?)`,
@@ -381,7 +396,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Izračunaj skupno trajanje in ceno storitev
-        const [[row]] = await pool.query(`
+        const [[row]] = await pool.execute(`
             SELECT 
              SUM(s.Cena) AS skupna_cena,
              SUM(s.Trajanje) AS skupno_trajanje
@@ -397,7 +412,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Preveri, ali frizer izvaja izbrane storitve
-        const [frizer_storitve] = await pool.query(`
+        const [frizer_storitve] = await pool.execute(`
             SELECT s.ID 
             FROM storitve s
             JOIN specializacija sp ON s.Ime = sp.Naziv 
@@ -409,7 +424,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Preveri, ali frizer dela v izbranem terminu
-        const [delovnik] = await pool.query(`
+        const [delovnik] = await pool.execute(`
             SELECT * FROM delovnik 
             WHERE Frizerji_id = ? 
             AND Dan = ? 
@@ -421,7 +436,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Preveri zasedenost termina
-        const [zasedeni] = await pool.query(`
+        const [zasedeni] = await pool.execute(`
             SELECT ID FROM termini WHERE
             Frizerji_id = ? AND
             Status = 'Rezervirano' AND
@@ -434,7 +449,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         }
 
         // Izračun konca termina
-        const [[konec]] = await pool.query(`
+        const [[konec]] = await pool.execute(`
             SELECT DATE_ADD(?, INTERVAL ? MINUTE) AS konec_termina`,
             [cas_termina, skupno_trajanje]);
 
@@ -454,9 +469,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
         });
     
     } catch (err) {
-        console.error(err);
-
-        res.status(500).json({ message: 'Napaka pri predogledu rezervacije.' });
+        next(err);
     }
 });
 
@@ -467,9 +480,9 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *     summary: Rezervacija termina
  *     description: |
  *       Omogoča prijavljenemu uporabniku rezervacijo termina pri izbranem frizerju.
- *       Uporabnik mora izbrati frizerja, datum, uro in vsaj eno storitev.
+ *       Uporabnik mora izbrati `frizerja`, `datum`, `uro` in vsaj eno `storitev`.
  *       Sistem preveri razpoložljivost frizerja in zasedenost termina.
- *       Če je vse veljavno, se termin shrani s statusom **Rezervirano**.
+ *       Če je vse veljavno, se termin shrani s statusom `'Rezervirano'`.
  *     tags:
  *       - Termini
  *     security:
@@ -582,8 +595,16 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *                   example: Izbrani termin ni na voljo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
+router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     const connection = await pool.getConnection();
     try {
         const uporabnik_ID = req.user.ID;
@@ -598,7 +619,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         const cas_termina = `${dan} ${ura}:00`;
 
         // Preveri, ali frizer obstaja
-        const [[frizer]] = await pool.query(`
+        const [[frizer]] = await pool.execute(`
             SELECT ID 
             FROM frizerji 
             WHERE ID = ?`,
@@ -609,19 +630,22 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         }
 
         // Preveri, ali frizer izvaja izbrane storitve
-        const [frizer_storitve] = await connection.query(`
-            SELECT s.ID 
+        const placeholders = storitve.map(() => '?').join(',');
+
+        const sql = 
+            `SELECT s.ID 
             FROM storitve s
             JOIN specializacija sp ON s.Ime = sp.Naziv 
-            WHERE sp.Frizerji_id = ? AND s.ID IN (?)`,
-            [frizer_ID, storitve]);
+            WHERE sp.Frizerji_id = ? AND s.ID IN (${placeholders})`;
+
+        const [frizer_storitve] = await connection.execute(sql, [frizer_ID, ...storitve]);
 
         if (frizer_storitve.length !== storitve.length) {
             return res.status(400).json({ message: 'Frizer ne izvaja vseh izbranih storitev.' });
         }
 
         // Preveri, ali frizer dela v izbranem terminu
-        const [delovnik] = await connection.query(`
+        const [delovnik] = await connection.execute(`
             SELECT * FROM delovnik WHERE 
             Frizerji_id = ? AND 
             Dan = ? AND 
@@ -633,11 +657,12 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         }
 
         // Izračunaj skupno trajanje storitev
-        const [trajanje_sum] = await connection.query(`
-            SELECT SUM(Trajanje) AS trajanje 
+        const squl = 
+            `SELECT SUM(Trajanje) AS trajanje 
             FROM storitve 
-            WHERE ID IN (?)`,
-            [storitve]);
+            WHERE ID IN (${placeholders})`;
+
+        const [trajanje_sum] = await connection.execute(squl, [...storitve]);
 
         const trajanje = trajanje_sum[0].trajanje;
 
@@ -646,7 +671,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         }
 
         // Preveri zasedenost termina
-        const [zasedeni] = await connection.query(`
+        const [zasedeni] = await connection.execute(`
             SELECT * FROM termini WHERE
             Frizerji_id = ? AND
             Status = 'Rezervirano' AND
@@ -662,7 +687,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         await connection.beginTransaction();
 
         // Vstavi nov termin
-        const [terminResult] = await connection.query(`
+        const [terminResult] = await connection.execute(`
             INSERT INTO termini 
             (Uporabniki_id, Frizerji_id, Cas_termina, Opombe, Status) 
             VALUES (?, ?, ?, ?, 'Rezervirano')`,
@@ -671,12 +696,18 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
         const termini_ID = terminResult.insertId;
 
         // Vstavi storitve za termin
-        const storitveValues = storitve.map(ID => [termini_ID, ID]);
+        const storitveValues = storitve.map(() => '(?, ?)').join(',');
 
-        await connection.query(`
+        const paramet = [];
+        storitve.forEach(ID => {
+            paramet.push(termini_ID, ID);
+        });
+
+        const esqul = `
             INSERT INTO termini_storitve (Termini_id, Storitve_id) 
-            VALUES ?`,
-            [storitveValues]);
+            VALUES ${storitveValues}`;
+
+        await connection.execute(esqul, paramet);
 
         await connection.commit();
 
@@ -689,9 +720,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
     
     } catch (err) {
         await connection.rollback();
-        console.error(err);
-
-        res.status(500).json({ message: 'Napaka pri rezervaciji termina.' });
+        next(err);
     } finally {
         connection.release();
     }
@@ -789,12 +818,20 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
+router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const uporabnik_ID = req.user.ID;
 
-        const [rows] = await pool.query(`
+        const [rows] = await pool.execute(`
         SELECT
          t.ID AS termin_ID,
          t.Cas_termina,
@@ -862,7 +899,7 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
 
         res.json(termini);
     } catch (err) {
-      res.status(500).json({ message: 'Napaka pri pridobivanju terminov.' });
+        next(err);
     }
 });
 
@@ -943,14 +980,22 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
  *                   example: Tega termina ni mogoče preklicati.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.patch('/preklic/:id', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res) => {
+router.patch('/preklic/:id', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
 
         const termin_ID = req.params.id;
         const uporabnik_ID = req.user.ID;
 
-        const [[termin]] = await pool.query(`
+        const [[termin]] = await pool.execute(`
             SELECT Status, Cas_termina
             FROM termini
             WHERE ID = ? AND Uporabniki_id = ?`,
@@ -977,7 +1022,7 @@ router.patch('/preklic/:id', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik')
             });
         }
 
-        await pool.query(`
+        await pool.execute(`
             UPDATE termini
             SET Status = 'Preklicano'
             WHERE ID = ?`,
@@ -990,8 +1035,7 @@ router.patch('/preklic/:id', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik')
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Napaka pri preklicu termina.' });
+        next(err);
     }
 });
 

@@ -73,7 +73,7 @@ const bcrypt = require('bcrypt');
  *                   example: Uporabnik uspešno dodan.
  *       400:
  *         description: Napačni ali manjkajoči podatki
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -83,7 +83,7 @@ const bcrypt = require('bcrypt');
  *                   example: Podatki manjkajo ali so napačni.
  *       409:
  *         description: Uporabniško ime že obstaja
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -93,35 +93,43 @@ const bcrypt = require('bcrypt');
  *                   example: Uporabniško ime že obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Dodajanje uporabnika
 router.post('/signup', async (req, res, next) => {
-    const { Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Uporabnisko_ime, Geslo } = req.body;
-    // Preveri, če so vsi potrebni podatki prisotni
-    if (!Spol || !Ime || !Priimek || !Naslov || !Starost || !Mail || !Telefon || !Uporabnisko_ime || !Geslo) {
-        return res.status(400).json({ message: 'Manjkajoči podatki.' });
-    }
-
-    const dovoljeniSpoli = ['Moški', 'Ženski'];
-    if (!dovoljeniSpoli.includes(Spol)) {
-        return res.status(400).json({ message: 'Neveljavna vrednost za spol.' });
-    }
-
-    const StarostNum = Number(Starost);
-    if (!Number.isInteger(StarostNum) || StarostNum < 0 || StarostNum > 100) {
-        return res.status(400).json({ message: 'Starost mora biti veljavna številka.' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(Mail)) {
-        return res.status(400).json({ message: 'Neveljaven email naslov.' });
-    }
-
-    if (Geslo.length < 8) {
-        return res.status(400).json({ message: 'Geslo mora imeti vsaj 8 znakov.' });
-    }
-
     try {
+        const { Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Uporabnisko_ime, Geslo } = req.body;
+        // Preveri, če so vsi potrebni podatki prisotni
+        if (!Spol || !Ime || !Priimek || !Naslov || !Starost || !Mail || !Telefon || !Uporabnisko_ime || !Geslo) {
+            return res.status(400).json({ message: 'Manjkajoči podatki.' });
+        }
+
+        const dovoljeniSpoli = ['Moški', 'Ženski'];
+        if (!dovoljeniSpoli.includes(Spol)) {
+            return res.status(400).json({ message: 'Neveljavna vrednost za spol.' });
+        }
+
+        const StarostNum = Number(Starost);
+        if (!Number.isInteger(StarostNum) || StarostNum < 0 || StarostNum > 100) {
+            return res.status(400).json({ message: 'Starost mora biti veljavna številka.' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(Mail)) {
+            return res.status(400).json({ message: 'Neveljaven email naslov.' });
+        }
+
+        if (Geslo.length < 8) {
+            return res.status(400).json({ message: 'Geslo mora imeti vsaj 8 znakov.' });
+        }
+
         if (await utils.uporabnikObstaja(Uporabnisko_ime)) {
             return res.status(409).json({ message: 'Uporabniško ime že obstaja.' });
         }
@@ -138,8 +146,6 @@ router.post('/signup', async (req, res, next) => {
             return res.status(201).json({
                 message: 'Uporabnik uspešno dodan.',
             });
-        } else {
-            return res.status(500).json({ message: 'Dodajanje uporabnika ni bilo uspešno.' });
         }
     } catch (err) {
         next(err);
@@ -151,7 +157,7 @@ router.post('/signup', async (req, res, next) => {
  * /uporabniki/login:
  *   post:
  *     summary: Prijava uporabnika
- *     description: Preveri uporabniško ime in geslo ter vrne JWT token ob uspešni prijavi.
+ *     description: Preveri `uporabniško ime` in `geslo` ter vrne JWT token ob uspešni prijavi.
  *     tags:
  *       - Uporabniki
  *     requestBody:
@@ -181,10 +187,13 @@ router.post('/signup', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Uspešna prijava.
+ *                   example: Prijava uspešna.
+ *                 token:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *       400:
  *         description: Manjkajoči podatki
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -194,7 +203,7 @@ router.post('/signup', async (req, res, next) => {
  *                   example: Manjkajo podatki.
  *       401:
  *         description: Napačno uporabniško ime ali geslo
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -204,16 +213,24 @@ router.post('/signup', async (req, res, next) => {
  *                   example: Napačno uporabniško ime ali geslo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Prijava uporabnika
 router.post('/login', async (req, res, next) => {
-    const { Uporabnisko_ime, Geslo } = req.body;
-
-    if (!Uporabnisko_ime || !Geslo) {
-        return res.status(400).json({ message: 'Manjkajoči podatki.' });
-    }
-
     try {
+        const { Uporabnisko_ime, Geslo } = req.body;
+
+        if (!Uporabnisko_ime || !Geslo) {
+            return res.status(400).json({ message: 'Manjkajoči podatki.' });
+        }
+
         // Poiščemo uporabnika v bazi
         const [rows] = await pool.execute(
             'SELECT ID, Uporabnisko_ime, Geslo FROM uporabniki WHERE Uporabnisko_ime = ?',

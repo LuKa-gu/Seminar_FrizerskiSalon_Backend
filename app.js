@@ -61,20 +61,22 @@ app.use('/storitve', storitveRouter);
 app.use('/termini', terminiRouter);
 app.use('/delovniki', delovnikiRouter);
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// 404 – route does not exist
+app.use((req, res, next) => {
+    next(createError(404, "Route not found"));
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// central error handler
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  console.error(err);
+
+  res.status(status).json({
+    error: status === 500
+      ? "Napaka na strežniku"
+      : err.message
+  });
 });
 
 module.exports = app;

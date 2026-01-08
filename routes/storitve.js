@@ -40,6 +40,14 @@ const auth = require('../utils/auth.js');
  *                     description: URL do podrobnosti storitve
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Pridobivanje id-jev in nazivov vseh storitev + link do podrobnosti
 router.get('/', async (req, res, next) => {
@@ -124,6 +132,14 @@ router.get('/', async (req, res, next) => {
  *                   example: Storitev ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Pridobivanje podrobnosti določene storitve glede na naziv
 router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
@@ -222,6 +238,14 @@ router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
  *                   example: Storitev ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Posodabljanje storitev
 router.put('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
@@ -320,6 +344,14 @@ router.put('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.
  *                   example: Storitev ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Brisanje storitev
 router.delete('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {

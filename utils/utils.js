@@ -1,31 +1,22 @@
 const pool = require('./db.js');
+const createError = require("http-errors");
 
 async function uporabnikObstaja(Uporabnisko_ime_upor) {
-    try {
-        if (!Uporabnisko_ime_upor) return false;
-        const [rows] = await pool.execute(
-            'SELECT Uporabnisko_ime FROM uporabniki WHERE Uporabnisko_ime = ?',
-            [Uporabnisko_ime_upor]
-        );
-        return rows.length > 0;
-    } catch (err) {
-        console.error('Database error in uporabnikObstaja:', err);
-        throw err;
-    }
+    if (!Uporabnisko_ime_upor) return false;
+    const [rows] = await pool.execute(
+        'SELECT Uporabnisko_ime FROM uporabniki WHERE Uporabnisko_ime = ?',
+        [Uporabnisko_ime_upor]
+    );
+    return rows.length > 0;
 }
 
 async function frizerObstaja(Uporabnisko_ime_friz) {
-    try {
-        if (!Uporabnisko_ime_friz) return false;
-        const [rows] = await pool.execute(
-            'SELECT Uporabnisko_ime FROM frizerji WHERE Uporabnisko_ime = ?',
-            [Uporabnisko_ime_friz]
-        );
-        return rows.length > 0;
-    } catch (err) {
-        console.error('Database error in frizerObstaja:', err);
-        throw err;
-    }
+    if (!Uporabnisko_ime_friz) return false;
+    const [rows] = await pool.execute(
+        'SELECT Uporabnisko_ime FROM frizerji WHERE Uporabnisko_ime = ?',
+        [Uporabnisko_ime_friz]
+    );
+    return rows.length > 0;
 }
 
 function createSlug(naziv) {
@@ -48,9 +39,9 @@ async function resolveStoritev(req, res, next) {
         const match = idNaziv.match(/^(\d+)-([a-z]+(?:-[a-z]+)*)$/i);
     
         if (!match) {
-            return res.status(400).json({
-            message: 'Neveljaven format naziva storitve. Pričakovan format je id-slug.'
-            });
+            return next(
+                createError(400, "Neveljaven format naziva storitve. Pričakovan format je id-slug.")
+            );
         }
     
         const ID = Number(match[1]); // vzame samo ID
@@ -58,7 +49,7 @@ async function resolveStoritev(req, res, next) {
         const [rows] = await pool.execute('SELECT * FROM storitve WHERE ID = ?', [ID]);
             
         if (rows.length === 0) {
-            return res.status(404).json({ message: 'Storitev ne obstaja.' });
+            return next(createError(404, "Storitev ne obstaja."));
         }
     
         req.storitev = rows[0];

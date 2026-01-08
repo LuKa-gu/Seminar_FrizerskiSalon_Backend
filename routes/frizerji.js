@@ -89,7 +89,7 @@ const bcrypt = require('bcrypt');
  *                   example: Frizer s specializacijami uspešno dodan.
  *       400:
  *         description: Napačni ali manjkajoči podatki
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -99,7 +99,7 @@ const bcrypt = require('bcrypt');
  *                   example: Podatki manjkajo ali so napačni.
  *       409:
  *         description: Uporabniško ime že obstaja
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -109,81 +109,78 @@ const bcrypt = require('bcrypt');
  *                   example: Uporabniško ime že obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Dodajanje frizerja
 router.post('/signup', async (req, res, next) => {
-    const { Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Opis, Uporabnisko_ime, Geslo, Specializacije } = req.body;
-    // Preveri, če so vsi potrebni podatki prisotni
-    if (!Spol || !Ime || !Priimek || !Naslov || !Starost || !Mail || !Telefon || !Opis || !Uporabnisko_ime || !Geslo || 
-        !Array.isArray(Specializacije) || Specializacije.length === 0
-    ) {
-        return res.status(400).json({ message: 'Manjkajoči podatki.' });
-    }
-
-    const dovoljeniSpoli = ['Moški', 'Ženski'];
-    if (!dovoljeniSpoli.includes(Spol)) {
-        return res.status(400).json({ message: 'Neveljavna vrednost za spol.' });
-    }
-
-    const StarostNum = Number(Starost);
-    if (!Number.isInteger(StarostNum) || StarostNum < 0 || StarostNum > 100) {
-        return res.status(400).json({ message: 'Starost mora biti veljavna številka.' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(Mail)) {
-        return res.status(400).json({ message: 'Neveljaven email naslov.' });
-    }
-
-    if (Geslo.length < 8) {
-        return res.status(400).json({ message: 'Geslo mora imeti vsaj 8 znakov.' });
-    }
-
     try {
+        const { Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Opis, Uporabnisko_ime, Geslo, Specializacije } = req.body;
+        // Preveri, če so vsi potrebni podatki prisotni
+        if (!Spol || !Ime || !Priimek || !Naslov || !Starost || !Mail || !Telefon || !Opis || !Uporabnisko_ime || !Geslo || 
+            !Array.isArray(Specializacije) || Specializacije.length === 0
+        ) {
+            return res.status(400).json({ message: 'Manjkajoči podatki.' });
+        }
+
+        const dovoljeniSpoli = ['Moški', 'Ženski'];
+        if (!dovoljeniSpoli.includes(Spol)) {
+            return res.status(400).json({ message: 'Neveljavna vrednost za spol.' });
+        }
+
+        const StarostNum = Number(Starost);
+        if (!Number.isInteger(StarostNum) || StarostNum < 0 || StarostNum > 100) {
+            return res.status(400).json({ message: 'Starost mora biti veljavna številka.' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(Mail)) {
+            return res.status(400).json({ message: 'Neveljaven email naslov.' });
+        }
+
+        if (Geslo.length < 8) {
+            return res.status(400).json({ message: 'Geslo mora imeti vsaj 8 znakov.' });
+        }
+
         if (await utils.frizerObstaja(Uporabnisko_ime)) {
             return res.status(409).json({ message: 'Uporabniško ime že obstaja.' });
         }
-        const connection = await pool.getConnection();
-        try {
-            await connection.beginTransaction();
 
-            // Hashiranje gesla
-            const hashedGeslo = await bcrypt.hash(Geslo, 10);
+        // Hashiranje gesla
+        const hashedGeslo = await bcrypt.hash(Geslo, 10);
 
-            // Vstavi novega frizerja v bazo
-            const [result] = await connection.execute(`
-                INSERT INTO frizerji (Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Opis, Uporabnisko_ime, Geslo) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [Spol, Ime, Priimek, Naslov, StarostNum, Mail, Telefon, Opis, Uporabnisko_ime, hashedGeslo]
-            );
+        // Vstavi novega frizerja v bazo
+        const [result] = await pool.execute(`
+            INSERT INTO frizerji (Spol, Ime, Priimek, Naslov, Starost, Mail, Telefon, Opis, Uporabnisko_ime, Geslo) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [Spol, Ime, Priimek, Naslov, StarostNum, Mail, Telefon, Opis, Uporabnisko_ime, hashedGeslo]
+        );
 
-            // Preverimo, če je bila vstavljena natanko ena vrstica
-            if (result.affectedRows !== 1) {
-                throw new Error('Dodajanje frizerja ni bilo uspešno.');
-            }
-
-            const frizerId = result.insertId;
-
-            // Vstavi specializacije
-            const insertSpecializacijeSql = 
-                'INSERT INTO specializacija (Frizerji_id, Naziv) VALUES (?, ?)';
-            
-            for (const naziv of Specializacije) {
-                await connection.execute(insertSpecializacijeSql, [frizerId, naziv]);
-            }
-
-            await connection.commit();
-
-            return res.status(201).json({
-                message: 'Frizer s specializacijami uspešno dodan.',
-            });
-
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            connection.release();
+        // Preverimo, če je bila vstavljena natanko ena vrstica
+        if (result.affectedRows !== 1) {
+            throw new Error('Dodajanje frizerja ni bilo uspešno.');
         }
+
+        const frizerId = result.insertId;
+
+        // Vstavi specializacije
+        const insertSpecializacijeSql = 
+            'INSERT INTO specializacija (Frizerji_id, Naziv) VALUES (?, ?)';
+            
+        for (const naziv of Specializacije) {
+            await pool.execute(insertSpecializacijeSql, [frizerId, naziv]);
+        }
+
+        return res.status(201).json({
+            message: 'Frizer s specializacijami uspešno dodan.',
+        });
+
     } catch (err) {
         next(err);
     }
@@ -194,7 +191,7 @@ router.post('/signup', async (req, res, next) => {
  * /frizerji/login:
  *   post:
  *     summary: Prijava frizerja
- *     description: Preveri uporabniško ime in geslo ter vrne JWT token ob uspešni prijavi.
+ *     description: Preveri `uporabniško ime` in `geslo` ter vrne JWT token ob uspešni prijavi.
  *     tags:
  *       - Frizerji
  *     requestBody:
@@ -224,10 +221,13 @@ router.post('/signup', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Uspešna prijava.
+ *                   example: Prijava uspešna.
+ *                 token:
+ *                   type: string
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *       400:
  *         description: Manjkajoči podatki
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -237,7 +237,7 @@ router.post('/signup', async (req, res, next) => {
  *                   example: Manjkajo podatki.
  *       401:
  *         description: Napačno uporabniško ime ali geslo
-  *         content:
+ *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -247,16 +247,24 @@ router.post('/signup', async (req, res, next) => {
  *                   example: Napačno uporabniško ime ali geslo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Prijava frizerja
 router.post('/login', async (req, res, next) => {
-    const { Uporabnisko_ime, Geslo } = req.body;
-
-    if (!Uporabnisko_ime || !Geslo) {
-        return res.status(400).json({ message: 'Manjkajoči podatki.' });
-    }
-
     try {
+        const { Uporabnisko_ime, Geslo } = req.body;
+
+        if (!Uporabnisko_ime || !Geslo) {
+            return res.status(400).json({ message: 'Manjkajoči podatki.' });
+        }
+
         // Poiščemo frizerja v bazi
         const [rows] = await pool.execute(
             'SELECT ID, Uporabnisko_ime, Geslo FROM frizerji WHERE Uporabnisko_ime = ?',
@@ -339,7 +347,7 @@ router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
  *     summary: Pridobi seznam osebnih imen vseh frizerjev
  *     description: |
  *       Vrne seznam vseh frizerjev, ki so na voljo v sistemu.
- *       Vsak frizer vsebuje enolični identifikator in njegovo ime ter priimek,
+ *       Vsak frizer vsebuje `enolični identifikator` in njegovo `ime` ter `priimek`,
  *       ki sta namenjena prikazu v uporabniškem vmesniku.
  *     tags:
  *       - Frizerji
@@ -363,9 +371,17 @@ router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
  *                     description: Ime in priimek frizerja
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Pridobivanje vseh frizerjev
-router.get('/', async (req, res, next) => {
+router.get('/', async (res, next) => {
     try {
         const [rows] = await pool.execute('SELECT ID, Ime, Priimek FROM frizerji');
         const result = rows.map(row => ({
@@ -384,8 +400,8 @@ router.get('/', async (req, res, next) => {
  *   get:
  *     summary: Pridobi informacije o vseh frizerjih
  *     description: |
- *       Vrne seznam vseh frizerjev skupaj z njihovimi specializacijami
- *       in delovniki.  
+ *       Vrne seznam vseh frizerjev skupaj z njihovimi `specializacijami`
+ *       in `delovniki`.  
  *       Vsak frizer ima lahko več specializacij in več delovnikov.
  *     tags:
  *       - Frizerji
@@ -450,9 +466,17 @@ router.get('/', async (req, res, next) => {
  *                           example: "16:00:00"
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Pridobivanje informacij o vseh frizerjih
-router.get('/info', async (req, res, next) => {
+router.get('/info', async (res, next) => {
     try {
         const [rows] = await pool.execute(`
             SELECT 
@@ -604,6 +628,14 @@ router.get('/info', async (req, res, next) => {
  *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
@@ -771,6 +803,14 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
  *                   example: Termin ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
@@ -854,7 +894,7 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *   patch:
  *     summary: Sprememba statusa termina
  *     description: |
- *       Spremeni status rezerviranega termina iz `Rezervirano` v `Preklicano`, `V izvajanju` ali `Zaključeno`, ali iz `V izvajanju` v `Zaključeno`.
+ *       Spremeni status rezerviranega termina iz `'Rezervirano'` v `'Preklicano'`, `'V izvajanju'` ali `'Zaključeno'`, ali iz `'V izvajanju'` v `'Zaključeno'`.
  *       V primeru uspešne spremembe statusa se vrne sporočilo o uspešni spremembi ter star in nov status.
  *     tags:
  *       - Frizerji
@@ -955,6 +995,14 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *                   example: Prehod iz statusa 'Preklicano' v 'Rezervirano' ni dovoljen.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 router.patch('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async(req, res, next) => {
     try {

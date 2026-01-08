@@ -11,7 +11,7 @@ const auth = require('../utils/auth.js');
  *     summary: Pridobi vse delovnike prijavljenega frizerja
  *     description: |
  *       Pridobi seznam vseh delovnikov za prijavljenega frizerja.
- *       Vsak delovnik ima svoj `datum` in `čas začetka` ter `konca`.
+ *       Vsak delovnik ima svoj `datum` in čas `začetka` ter `konca`.
  *       Vsak delovnik vsebuje tudi URL, ki vsebuje `ID` delovnika, za posodobitev ali brisanje delovnika.
  *     tags:
  *       - Delovniki
@@ -78,8 +78,16 @@ const auth = require('../utils/auth.js');
  *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
-router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res) => {
+router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const frizer_ID = req.user.ID;
 
@@ -109,12 +117,9 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
 
         res.json(delovniki_url);
 
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({
-            message: 'Napaka pri pridobivanju delovnikov.'
-            });
-        }
+    } catch (err) {
+        next(err);
+    }
 });
 
 /**
@@ -217,6 +222,14 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *                   example: Delovnik se časovno prekriva z obstoječim.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Rezervacija delovnika frizerja
 router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
@@ -238,7 +251,7 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
         }
 
         // Preveri prekrivanje časov
-        const [prekrivanja] = await pool.query(
+        const [prekrivanja] = await pool.execute(
             `SELECT ID
             FROM delovnik
             WHERE Frizerji_id = ?
@@ -255,7 +268,7 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
         }
 
         // Vstavi nov delovnik
-        await pool.query(
+        await pool.execute(
             `INSERT INTO delovnik (Frizerji_id, Dan, Zacetek, Konec)
             VALUES (?, ?, ?, ?)`,
             [frizer_ID, dan, zacetek, konec]
@@ -272,10 +285,7 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
         });
 
     } catch (err) {
-      console.error(err);
-      res.status(500).json({
-        message: 'Napaka pri shranjevanju delovnika.'
-      });
+        next(err);
     }
 });
 
@@ -381,9 +391,17 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
  *                   example: Delovnik se časovno prekriva z obstoječim.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Posodobitev delovnika frizerja
-router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res) => {
+router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const frizer_ID = req.user.ID;
         const delovnik_ID = req.params.id;
@@ -402,7 +420,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
         }
 
         // Preveri obstoj in lastništvo
-        const [[obstaja]] = await pool.query(
+        const [[obstaja]] = await pool.execute(
             `SELECT ID
             FROM delovnik
             WHERE ID = ? AND Frizerji_id = ?`,
@@ -416,7 +434,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
         }
 
         // Preveri prekrivanje (izključi samega sebe)
-        const [prekrivanja] = await pool.query(
+        const [prekrivanja] = await pool.execute(
             `SELECT ID
             FROM delovnik
             WHERE Frizerji_id = ?
@@ -434,7 +452,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
         }
 
         // Update
-        await pool.query(
+        await pool.execute(
             `UPDATE delovnik
             SET Dan = ?, Zacetek = ?, Konec = ?
             WHERE ID = ?`,
@@ -446,10 +464,7 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            message: 'Napaka pri posodabljanju delovnika.'
-      });
+        next(err);
     }
 });
 
@@ -514,14 +529,22 @@ router.put('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req,
  *                   example: Delovnik ne obstaja.
  *       500:
  *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
  */
 // Brisanje delovnika frizerja
-router.delete('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res) => {
+router.delete('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const frizer_ID = req.user.ID;
         const delovnik_ID = req.params.id;
 
-        const [result] = await pool.query(
+        const [result] = await pool.execute(
             `DELETE FROM delovnik
             WHERE ID = ? AND Frizerji_id = ?`,
             [delovnik_ID, frizer_ID]
@@ -538,10 +561,7 @@ router.delete('/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (r
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            message: 'Napaka pri brisanju delovnika.'
-        });
+        next(err);
     }
 });
 
