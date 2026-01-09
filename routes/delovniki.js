@@ -8,11 +8,11 @@ const auth = require('../utils/auth.js');
  * @swagger
  * /delovniki:
  *   get:
- *     summary: Pridobi vse delovnike prijavljenega frizerja
+ *     summary: Pridobi vse delovnike frizerja
  *     description: |
  *       Pridobi seznam vseh delovnikov za prijavljenega frizerja.
  *       Vsak delovnik ima svoj `datum` in čas `začetka` ter `konca`.
- *       Vsak delovnik vsebuje tudi URL, ki vsebuje `ID` delovnika, za posodobitev ali brisanje delovnika.
+ *       Vsak delovnik vsebuje tudi `URL`, ki vsebuje `ID` delovnika, za posodobitev ali brisanje delovnika.
  *     tags:
  *       - Delovniki
  *     security:
@@ -33,19 +33,15 @@ const auth = require('../utils/auth.js');
  *                       ID:
  *                         type: integer
  *                         example: 1
- *                         description: Enolični ID delovnika
  *                       Dan:
  *                         type: string
  *                         example: "2025-11-24"
- *                         description: Datum delovnika
  *                       Zacetek:
  *                         type: string
  *                         example: "08:00:00"
- *                         description: Začetek delovnika
  *                       Konec:
  *                         type: string
  *                         example: "12:00:00"
- *                         description: Konec delovnika
  *                       Url:
  *                         type: string
  *                         format: uri
@@ -87,6 +83,7 @@ const auth = require('../utils/auth.js');
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Pridobitev vseh delovnikov frizerja
 router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const frizer_ID = req.user.ID;
@@ -128,7 +125,7 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *   post:
  *     summary: Dodajanje delovnega časa frizerja
  *     description: |
- *       Frizer lahko doda en ali več delovnih intervalov na isti dan
+ *       Frizer lahko doda en ali več `delovnih intervalov` na isti dan
  *       (npr. dopoldanski in popoldanski termin).
  *       Časovni intervali se ne smejo prekrivati.
  *     tags:
@@ -141,19 +138,20 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - dan
+ *               - zacetek
+ *               - konec
  *             properties:
  *               dan:
  *                 type: string
  *                 example: "2025-11-24"
- *                 description: Datum delovnika
  *               zacetek:
  *                 type: string
  *                 example: "08:00"
- *                 description: Začetek delovnika
  *               konec:
  *                 type: string
  *                 example: "12:00"
- *                 description: Konec delovnika
  *     responses:
  *       201:
  *         description: Delovnik uspešno dodan
@@ -315,19 +313,20 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - dan
+ *               - zacetek
+ *               - konec
  *             properties:
  *               dan:
  *                 type: string
  *                 example: "2025-11-24"
- *                 description: Posodobljen datum delovnika
  *               zacetek:
  *                 type: string
  *                 example: "08:00"
- *                 description: Posodobljen začetek delovnika
  *               konec:
  *                 type: string
  *                 example: "12:00"
- *                 description: Posodobljen konec delovnika
  *     responses:
  *       200:
  *         description: Delovnik uspešno posodobljen

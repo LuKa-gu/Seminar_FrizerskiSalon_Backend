@@ -10,8 +10,8 @@ const auth = require('../utils/auth.js');
  *   post:
  *     summary: Preverjanje razpoložljivosti termina
  *     description: |
- *       Vrne seznam možnih začetnih ur termina za izbranega frizerja, dan in kombinacijo storitev.
- *       Sistem upošteva delovni čas frizerja, trajanje izbranih storitev ter že obstoječe rezervacije.
+ *       Vrne seznam možnih `začetnih ur` termina za izbranega `frizerja`, `dan` in kombinacijo `storitev`.
+ *       Sistem upošteva `delovni čas` frizerja, `trajanje` izbranih storitev ter že obstoječe `rezervacije`.
  *       Endpoint ne ustvarja rezervacije, ampak služi izključno informativnemu preverjanju.
  *     tags:
  *       - Termini
@@ -23,22 +23,23 @@ const auth = require('../utils/auth.js');
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - frizer_ID
+ *               - dan
+ *               - storitve
  *             properties:
  *               frizer_ID:
  *                 type: integer
  *                 example: 3
- *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
  *                 example: 2025-06-10
- *                 description: Datum, za katerega se preverja razpoložljivost (YYYY-MM-DD)
  *               storitve:
  *                 type: array
  *                 minItems: 1
  *                 items:
  *                   type: integer
  *                   example: 1
- *                 description: Seznam ID-jev izbranih storitev
  *     responses:
  *       200:
  *         description: Uspešno preverjena razpoložljivost
@@ -65,7 +66,7 @@ const auth = require('../utils/auth.js');
  *                         example: "11:30"
  *                   description: |
  *                     Seznam časovnih intervalov, v katerih je možen začetek termina. 
- *                     Uporabnik lahko izbere katerikoli čas med `"od"` in `"do"`. 
+ *                     Uporabnik lahko izbere katerikoli čas med `'od'` in `'do'`. 
  *                     Prazen seznam pomeni, da ta dan ni razpoložljivih terminov.
  *                 razlog:
  *                   type: string
@@ -123,6 +124,7 @@ const auth = require('../utils/auth.js');
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Preverjanje razpoložljivosti termina uporabnika
 router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const { frizer_ID, dan, storitve } = req.body;
@@ -222,7 +224,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *     summary: Predogled rezervacije termina
  *     description: |
  *       Omogoča uporabniku, da pred potrditvijo rezervacije še enkrat preveri izbrane podatke.
- *       Sistem vrne povzetek: frizer, izbrane storitve, skupno ceno in trajanje, morebitne opombe, ter datum in čas termina.
+ *       Sistem vrne povzetek: `frizer`, izbrane `storitve`, `skupno ceno` in `trajanje`, morebitne `opombe`, ter `datum` in `čas` termina.
  *     tags:
  *       - Termini
  *     security:
@@ -233,31 +235,31 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - frizer_ID
+ *               - dan
+ *               - ura
+ *               - storitve
  *             properties:
  *               frizer_ID:
  *                 type: integer
  *                 example: 3
- *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
  *                 example: 2025-01-23
- *                 description: Datum termina (YYYY-MM-DD)
  *               ura:
  *                 type: string
  *                 example: "15:00"
- *                 description: Začetna ura termina (HH:mm)
  *               storitve:
  *                 type: array
  *                 minItems: 1
  *                 items:
  *                   type: integer
  *                   example: 1
- *                 description: Seznam ID-jev izbranih storitev
  *               opombe:
  *                 type: string
  *                 nullable: true
  *                 example: Prosim krajše ob straneh
- *                 description: Dodatne opombe uporabnika (neobvezno)
  *     responses:
  *       200:
  *         description: Povzetek termina pripravljen
@@ -363,6 +365,7 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Predogled rezervacije termina uporabnika
 router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const { frizer_ID, dan, ura, storitve, opombe } = req.body;
@@ -481,7 +484,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *     description: |
  *       Omogoča prijavljenemu uporabniku rezervacijo termina pri izbranem frizerju.
  *       Uporabnik mora izbrati `frizerja`, `datum`, `uro` in vsaj eno `storitev`.
- *       Sistem preveri razpoložljivost frizerja in zasedenost termina.
+ *       Sistem preveri `razpoložljivost` frizerja in `zasedenost` termina.
  *       Če je vse veljavno, se termin shrani s statusom `'Rezervirano'`.
  *     tags:
  *       - Termini
@@ -502,27 +505,22 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *               frizer_ID:
  *                 type: integer
  *                 example: 3
- *                 description: Enolični ID izbranega frizerja
  *               dan:
  *                 type: string
  *                 example: 2025-01-23
- *                 description: Datum termina (YYYY-MM-DD)
  *               ura:
  *                 type: string
  *                 example: "15:00"
- *                 description: Začetna ura termina (HH:mm)
  *               storitve:
  *                 type: array
  *                 minItems: 1
  *                 items:
  *                   type: integer
  *                   example: 1
- *                 description: Seznam ID-jev izbranih storitev
  *               opombe:
  *                 type: string
  *                 nullable: true
  *                 example: Prosim krajše ob straneh
- *                 description: Dodatne opombe uporabnika (neobvezno)
  *     responses:
  *       201:
  *         description: Termin uspešno rezerviran
@@ -604,6 +602,7 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Rezervacija termina uporabnika
 router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     const connection = await pool.getConnection();
     try {
@@ -733,8 +732,8 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *     summary: Pregled vseh rezervacij uporabnika
  *     description: |
  *       Prikazuje seznam vseh terminov, ki jih je uporabnik rezerviral.
- *       Za vsak termin se prikaže frizer, izbrane storitve, datum in čas začetka in konca termina, 
- *       skupno trajanje, skupna cena ter opombe in status termina. Prav tako je podan tudi URL za preklic termina.
+ *       Za vsak termin se prikaže `frizer`, izbrane `storitve`, `datum` in `čas` `začetka` in `konca` termina, 
+ *       `skupno trajanje`, `skupna cena` ter `opombe` in `status` termina. Prav tako je podan tudi `URL` za preklic termina.
  *     tags:
  *       - Termini
  *     security:
@@ -827,6 +826,7 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Pregled rezervacij uporabnika
 router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
         const uporabnik_ID = req.user.ID;
@@ -911,7 +911,6 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
  *     description: |
  *       Prekliče rezerviran termin, če je status termina `'Rezervirano'`, uporabnik je lastnik in je do začetka termina več kot `24` ur.
  *       V primeru uspešnega preklica se vrne sporočilo o uspešnem preklicu.
- *       V primeru napake se vrne ustrezen status in sporočilo.
  *     tags:
  *       - Termini
  *     security:
@@ -969,7 +968,7 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
  *                   type: string
  *                   example: Termin ne obstaja.
  *       409:
- *         description: Termina ni mogoče preklicati, ker status ni `'Rezervirano'` ali je do začetka termina manj kot `24` ur
+ *         description: Termina ni mogoče preklicati, ker status ni 'Rezervirano' ali je do začetka termina manj kot 24 ur
  *         content:
  *           application/json:
  *             schema:
@@ -989,6 +988,7 @@ router.get('/pregled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), asyn
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Preklic termina uporabnika
 router.patch('/preklic/:id', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), async (req, res, next) => {
     try {
 

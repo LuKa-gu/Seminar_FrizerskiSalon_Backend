@@ -10,7 +10,7 @@ const bcrypt = require('bcrypt');
  * /uporabniki/signup:
  *   post:
  *     summary: Registracija novega uporabnika
- *     description: Ustvari novega uporabnika in shrani hashirano geslo v bazo.
+ *     description: Ustvari novega uporabnika in shrani `hashirano geslo` v bazo.
  *     tags:
  *       - Uporabniki
  *     requestBody:
@@ -157,7 +157,7 @@ router.post('/signup', async (req, res, next) => {
  * /uporabniki/login:
  *   post:
  *     summary: Prijava uporabnika
- *     description: Preveri `uporabniško ime` in `geslo` ter vrne JWT token ob uspešni prijavi.
+ *     description: Preveri `uporabniško ime` in `geslo` ter vrne `JWT token` ob uspešni prijavi.
  *     tags:
  *       - Uporabniki
  *     requestBody:
@@ -200,7 +200,7 @@ router.post('/signup', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Manjkajo podatki.
+ *                   example: Manjkajoči podatki.
  *       401:
  *         description: Napačno uporabniško ime ali geslo
  *         content:
@@ -270,14 +270,14 @@ router.post('/login', async (req, res, next) => {
  * /uporabniki/jaz:
  *   get:
  *     summary: Preveri prijavljenega uporabnika
- *     description: Vrne informacije o prijavljenem uporabniku na podlagi posredovanega JWT tokena.
+ *     description: Vrne informacije o prijavljenem uporabniku na podlagi posredovanega `JWT tokena`.
  *     tags:
  *       - Uporabniki
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Frizer je prijavljen
+ *         description: Uporabnik je prijavljen
  *         content:
  *           application/json:
  *             schema:
@@ -285,7 +285,7 @@ router.post('/login', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Frizer uspešno prijavljen.
+ *                   example: Uporabnik je prijavljen.
  *       401:
  *         description: Neavtenticiran uporabnik
  *         content:

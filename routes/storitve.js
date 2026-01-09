@@ -12,7 +12,7 @@ const auth = require('../utils/auth.js');
  *     description: |
  *       Vrne seznam vseh storitev, ki so na voljo v sistemu. 
  *       Vsaka storitev vsebuje enolični `ID`, `naziv` ter `URL` do podrobnosti storitve, ki se lahko uporablja za prikaz dodatnih informacij v uporabniškem vmesniku.
- *       URL vsebuje kombinacijo `ID` in formatiranega naziva (slug) za boljšo berljivost, npr. `12-zensko-strizenje`.
+ *       URL vsebuje kombinacijo `ID` in `formatiranega naziva` (slug) za boljšo berljivost, npr. `12-zensko-strizenje`.
  *     tags:
  *       - Storitve
  *     responses:
@@ -28,11 +28,9 @@ const auth = require('../utils/auth.js');
  *                   id:
  *                     type: integer
  *                     example: 12
- *                     description: Enolični ID storitve
  *                   naziv:
  *                     type: string
  *                     example: Žensko striženje
- *                     description: Naziv storitve
  *                   url:
  *                     type: string
  *                     format: uri
@@ -111,7 +109,7 @@ router.get('/', async (req, res, next) => {
  *                   type: string
  *                   example: "15.00"
  *       400:
- *         description: Neveljaven format parametra `naziv`
+ *         description: Neveljaven format parametra 'naziv'
  *         content:
  *           application/json:
  *             schema:
@@ -119,7 +117,7 @@ router.get('/', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Neveljaven format naziva storitve. Pričakovan format je `id-slug`.
+ *                   example: Neveljaven format naziva storitve. Pričakovan format je 'id-slug'.
  *       404:
  *         description: Storitev ne obstaja
  *         content:
@@ -175,6 +173,10 @@ router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - Opis
+ *               - Trajanje
+ *               - Cena
  *             properties:
  *               Opis:
  *                 type: string
@@ -197,7 +199,7 @@ router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
  *                   type: string
  *                   example: Storitev uspešno posodobljena.
  *       400:
- *         description: Neveljaven format parametra `naziv` ali podatkov
+ *         description: Neveljaven format parametra 'naziv' ali podatkov
  *         content:
  *           application/json:
  *             schema:
@@ -303,7 +305,7 @@ router.put('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.
  *                   type: string
  *                   example: Storitev uspešno izbrisana.
  *       400:
- *         description: Neveljaven format parametra `naziv`
+ *         description: Neveljaven format parametra 'naziv'
  *         content:
  *           application/json:
  *             schema:

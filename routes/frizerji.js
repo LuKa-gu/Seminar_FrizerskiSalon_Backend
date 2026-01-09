@@ -11,8 +11,8 @@ const bcrypt = require('bcrypt');
  *   post:
  *     summary: Registracija novega frizerja
  *     description: |
- *       Ustvari novega frizerja, shrani hashirano geslo v bazo 
- *       ter doda njegove specializacije.
+ *       Ustvari novega frizerja, shrani `hashirano geslo` v bazo 
+ *       ter doda njegove `specializacije`.
  *     tags:
  *       - Frizerji
  *     requestBody:
@@ -191,7 +191,7 @@ router.post('/signup', async (req, res, next) => {
  * /frizerji/login:
  *   post:
  *     summary: Prijava frizerja
- *     description: Preveri `uporabniško ime` in `geslo` ter vrne JWT token ob uspešni prijavi.
+ *     description: Preveri `uporabniško ime` in `geslo` ter vrne `JWT token` ob uspešni prijavi.
  *     tags:
  *       - Frizerji
  *     requestBody:
@@ -234,7 +234,7 @@ router.post('/signup', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Manjkajo podatki.
+ *                   example: Manjkajoči podatki.
  *       401:
  *         description: Napačno uporabniško ime ali geslo
  *         content:
@@ -305,7 +305,7 @@ router.post('/login', async (req, res, next) => {
  * /frizerji/jaz:
  *   get:
  *     summary: Preveri prijavljenega frizerja
- *     description: Vrne informacije o prijavljenem frizerju na podlagi posredovanega JWT tokena.
+ *     description: Vrne informacije o prijavljenem frizerju na podlagi posredovanega `JWT tokena`.
  *     tags:
  *       - Frizerji
  *     security:
@@ -320,7 +320,7 @@ router.post('/login', async (req, res, next) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: Frizer uspešno prijavljen.
+ *                   example: Frizer je prijavljen.
  *       401:
  *         description: Neavtenticiran frizer
  *         content:
@@ -364,11 +364,9 @@ router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
  *                   id:
  *                     type: integer
  *                     example: 3
- *                     description: Enolični ID frizerja
  *                   osebno_ime:
  *                     type: string
  *                     example: Janez Novak
- *                     description: Ime in priimek frizerja
  *       500:
  *         description: Napaka na strežniku
  *         content:
@@ -400,8 +398,7 @@ router.get('/', async (res, next) => {
  *   get:
  *     summary: Pridobi informacije o vseh frizerjih
  *     description: |
- *       Vrne seznam vseh frizerjev skupaj z njihovimi `specializacijami`
- *       in `delovniki`.  
+ *       Vrne seznam vseh frizerjev skupaj z njihovimi `specializacijami` in `delovniki`.  
  *       Vsak frizer ima lahko več specializacij in več delovnikov.
  *     tags:
  *       - Frizerji
@@ -552,7 +549,9 @@ router.get('/info', async (res, next) => {
  * /frizerji/termini:
  *   get:
  *     summary: Pridobi termine frizerja za določen dan
- *     description: Vrne seznam terminov za prijavljenega frizerja za določen datum. Za vsak termin vrne `uro`, `ime` in `priimek` stranke ter `URL` do podrobnosti termina.
+ *     description: |
+ *       Vrne seznam terminov za prijavljenega frizerja za določen `datum`. 
+ *       Za vsak termin vrne `uro`, `ime` in `priimek` stranke ter `URL` do podrobnosti termina.
  *     tags:
  *       - Frizerji
  *     security:
@@ -637,6 +636,7 @@ router.get('/info', async (res, next) => {
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Pridobivanje terminov frizerja
 router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const dan = req.query.dan; // datum v obliki 'YYYY-MM-DD' iz query stringa
@@ -690,9 +690,9 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
  *     summary: Pridobi podrobnosti določenega termina
  *     description: |
  *       Vrne podrobnosti določenega termina glede na parameter `id` v URL-ju.
- *       Sistem vrne ime in priimek stranke, uro termina, seznam storitev, ki vsebuje naziv, trajanje in ceno vsake storitve.
- *       Prav tako vrne skupno trajanje in ceno storitev, morebitne opombe, kontakt stranke, ki vsebuje telefon in mail, ter status termina.
- *       Sistem vrne še URL naslov za spremembo statusa termina.
+ *       Sistem vrne `ime` in `priimek` stranke, `uro` termina, seznam `storitev`, ki vsebuje `naziv`, `trajanje` in `ceno` vsake storitve.
+ *       Prav tako vrne `skupno trajanje` in `ceno` storitev, morebitne `opombe`, `kontakt` stranke, ki vsebuje `telefon` in `mail`, ter `status` termina.
+ *       Sistem vrne še `URL naslov` za spremembo `statusa` termina.
  *     tags:
  *       - Frizerji
  *     security:
@@ -812,6 +812,7 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Pridobivanje podrobnosti določenega termina
 router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const terminId = req.params.id;
@@ -895,7 +896,7 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *     summary: Sprememba statusa termina
  *     description: |
  *       Spremeni status rezerviranega termina iz `'Rezervirano'` v `'Preklicano'`, `'V izvajanju'` ali `'Zaključeno'`, ali iz `'V izvajanju'` v `'Zaključeno'`.
- *       V primeru uspešne spremembe statusa se vrne sporočilo o uspešni spremembi ter star in nov status.
+ *       V primeru uspešne spremembe statusa se vrne `sporočilo` o uspešni spremembi ter `star` in `nov` status.
  *     tags:
  *       - Frizerji
  *     security:
@@ -914,6 +915,8 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - status
  *             properties:
  *               status:
  *                 type: string
@@ -930,19 +933,15 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *                 message:
  *                   type: string
  *                   example: Status termina je bil uspešno posodobljen.
- *                   description: Sporočilo ob uspehu
  *                 termin_id:
- *                   type: boolean
- *                   example: true
- *                   description: ID posodobljenega termina
+ *                   type: integer
+ *                   example: 12
  *                 prejsnji_status:
  *                   type: string
  *                   example: 'Rezervirano'
- *                   description: Prejšnji status termina
  *                 novi_status:
  *                   type: string
  *                   example: 'V izvajanju'
- *                   description: Posodobljeni status termina
  *       400:
  *         description: Neveljaven status za spremembo termina
  *         content:
@@ -1004,6 +1003,7 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *                   type: string
  *                   example: Napaka na strežniku.
  */
+// Sprememba statusa termina
 router.patch('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async(req, res, next) => {
     try {
         const terminId = req.params.id;
