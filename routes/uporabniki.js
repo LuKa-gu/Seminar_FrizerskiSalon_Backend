@@ -286,6 +286,18 @@ router.post('/login', async (req, res, next) => {
  *                 message:
  *                   type: string
  *                   example: Uporabnik je prijavljen.
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     ID:
+ *                       type: integer
+ *                       example: 1
+ *                     Uporabnisko_ime:
+ *                       type: string
+ *                       example: "miha123"
+ *                     role:
+ *                       type: string
+ *                       example: "uporabnik"
  *       401:
  *         description: Neavtenticiran uporabnik
  *         content:
