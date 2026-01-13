@@ -163,21 +163,6 @@ router.get('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, re
  *                 message:
  *                   type: string
  *                   example: Delovnik uspešno dodan.
- *                 delovnik:
- *                   type: object
- *                   properties:
- *                     frizer_ID:
- *                       type: integer
- *                       example: 1
- *                     dan:
- *                       type: string
- *                       example: "2025-11-24"
- *                     zacetek:
- *                       type: string
- *                       example: "08:00"
- *                     konec:
- *                       type: string
- *                       example: "12:00"
  *       400:
  *         description: Napačni ali manjkajoči podatki
  *         content:
@@ -274,12 +259,6 @@ router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, r
 
         res.status(201).json({
             message: 'Delovnik uspešno dodan.',
-            delovnik: {
-                frizer_ID,
-                dan,
-                zacetek,
-                konec
-            }
         });
 
     } catch (err) {

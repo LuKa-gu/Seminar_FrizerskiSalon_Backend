@@ -7,6 +7,128 @@ const auth = require('../utils/auth.js');
 /**
  * @swagger
  * /storitve:
+ *   post:
+ *     summary: Dodajanje nove storitve
+ *     description: |
+ *       Omogoča frizerju dodajanje nove storitve, tako da vpiše `Ime`, `Opis`, `Trajanje` in `Ceno`
+ *       nove storitve. Ob uspešnem dodajanju storitve sistem vrne obvestilo o uspehu.
+ *     tags:
+ *       - Storitve
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - Ime
+ *               - Opis
+ *               - Trajanje
+ *               - Cena
+ *             properties:
+ *               Ime:
+ *                 type: string
+ *                 example: Žensko striženje
+ *               Opis:
+ *                 type: string
+ *                 example: Klasično žensko striženje
+ *               Trajanje:
+ *                 type: integer
+ *                 example: 60
+ *               Cena:
+ *                 type: string
+ *                 example: "15.00"
+ *     responses:
+ *       201:
+ *         description: Storitev uspešno dodana
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Storitev uspešno dodana.
+ *       400:
+ *         description: Napačni ali manjkajoči podatki
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Trajanje in cena morata biti pozitivni števili.
+ *       401:
+ *         description: Neavtenticiran frizer
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Ni tokena ali je neveljaven ali potekel.
+ *       403:
+ *         description: Frizer nima ustreznih pravic
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Dostop zavrnjen. Ni dovoljeno za vašo vlogo.
+ *       500:
+ *         description: Napaka na strežniku
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Napaka na strežniku.
+ */
+// Rezervacija delovnika frizerja
+router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
+    try {
+        const { Ime, Opis, Trajanje, Cena } = req.body;
+
+        // Validacija
+        if (!Ime || !Opis || !Trajanje || !Cena) {
+            return res.status(400).json({
+                message: 'Manjkajoči podatki.'
+            });
+        }
+
+        if (Trajanje < 0 || Cena < 0) {
+            return res.status(400).json({
+                message: 'Trajanje in cena morata biti pozitivni števili.'
+            });
+        }
+
+        // Vstavi novo storitev
+        await pool.execute(
+            `INSERT INTO storitve (Ime, Opis, Trajanje, Cena)
+            VALUES (?, ?, ?, ?)`,
+            [Ime, Opis, Trajanje, Cena]
+        );
+
+        res.status(201).json({
+            message: 'Storitev uspešno dodana.',
+        });
+
+    } catch (err) {
+        next(err);
+    }
+});
+
+/**
+ * @swagger
+ * /storitve:
  *   get:
  *     summary: Pridobi seznam vseh storitev
  *     description: |
@@ -253,6 +375,19 @@ router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
 router.put('/:idNaziv', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), utils.resolveStoritev, async (req, res, next) => {
     try {
         const { Opis, Trajanje, Cena } = req.body;
+
+        // Validacija
+        if (!Opis || !Trajanje || !Cena) {
+            return res.status(400).json({
+                message: 'Manjkajoči podatki.'
+            });
+        }
+
+        if (Trajanje < 0 || Cena < 0) {
+            return res.status(400).json({
+                message: 'Trajanje in cena morata biti pozitivni števili.'
+            });
+        }
 
         await pool.execute(`
             UPDATE storitve
