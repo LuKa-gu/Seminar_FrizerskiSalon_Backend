@@ -564,6 +564,7 @@ router.get('/info', async (res, next) => {
  *     description: |
  *       Vrne seznam terminov za prijavljenega frizerja za določen `datum`. 
  *       Za vsak termin vrne `uro`, `ime` in `priimek` stranke ter `URL` do podrobnosti termina.
+ *       Če terminov za določen dan ni, vrne prazno tabelo `termini` ter `message`, ki frizerja obvesti o tem.
  *     tags:
  *       - Frizerji
  *     security:
@@ -674,14 +675,7 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
             JOIN uporabniki u ON t.Uporabniki_id = u.ID
             WHERE t.Frizerji_id = ? AND DATE(t.Cas_termina) = ?
             ORDER BY t.Cas_termina ASC`, 
-            [frizerId, dan]);
-
-        if (rows.length === 0) {
-            return res.json({
-                termini: [],
-                message: 'Ni terminov za ta dan.'
-            });
-        }
+        [frizerId, dan]);
 
         const termini = rows.map(row => ({
             ura: row.Ura,
@@ -689,7 +683,10 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
             url: utils.urlVira(req, `/frizerji/termini/${row.ID}`)
         }));
 
-        res.json(termini);
+        res.json({
+            termini,
+            message: termini.length === 0 ? 'Ni terminov za ta dan.' : null
+        });
     } catch (err) {
         next(err);
     }
@@ -908,7 +905,7 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *     summary: Sprememba statusa termina
  *     description: |
  *       Spremeni status rezerviranega termina iz `'Rezervirano'` v `'Preklicano'`, `'V izvajanju'` ali `'Zaključeno'`, ali iz `'V izvajanju'` v `'Zaključeno'`.
- *       V primeru uspešne spremembe statusa se vrne `sporočilo` o uspešni spremembi ter `star` in `nov` status.
+ *       V primeru uspešne spremembe statusa se vrne `sporočilo` o uspešni spremembi.
  *     tags:
  *       - Frizerji
  *     security:
@@ -942,18 +939,12 @@ router.get('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), asy
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 message:
  *                   type: string
  *                   example: Status termina je bil uspešno posodobljen.
- *                 termin_id:
- *                   type: integer
- *                   example: 12
- *                 prejsnji_status:
- *                   type: string
- *                   example: 'Rezervirano'
- *                 novi_status:
- *                   type: string
- *                   example: 'V izvajanju'
  *       400:
  *         description: Neveljaven status za spremembo termina
  *         content:
@@ -1074,10 +1065,8 @@ router.patch('/termini/:id', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), a
 
         // odgovor
         res.status(200).json({
-            message: 'Status termina je bil uspešno posodobljen.',
-            termin_id: terminId,
-            prejsnji_status: trenutniStatus,
-            novi_status: novStatus
+            success: true,
+            message: 'Status termina je bil uspešno posodobljen.'
         });
 
     } catch (err) {

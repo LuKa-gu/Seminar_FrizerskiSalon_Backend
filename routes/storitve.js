@@ -92,7 +92,7 @@ const auth = require('../utils/auth.js');
  *                   type: string
  *                   example: Napaka na strežniku.
  */
-// Rezervacija delovnika frizerja
+// Dodajanje nove storitve
 router.post('/', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (req, res, next) => {
     try {
         const { Ime, Opis, Trajanje, Cena } = req.body;
