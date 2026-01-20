@@ -144,13 +144,15 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
             return res.status(404).json({ message: 'Izbrani frizer ne obstaja.' });
         }
 
+        const placeholders = storitve.map(() => '?').join(',');
+
         // Preveri, ali frizer izvaja izbrane storitve
         const [frizer_storitve] = await pool.execute(`
             SELECT s.ID 
             FROM storitve s
             JOIN specializacija sp ON s.Ime = sp.Naziv
-            WHERE sp.Frizerji_id = ? AND s.ID IN (?)`,
-            [frizer_ID, storitve]
+            WHERE sp.Frizerji_id = ? AND s.ID IN (${placeholders})`,
+            [frizer_ID, ...storitve]
         );
 
         if (frizer_storitve.length !== storitve.length) {
@@ -161,8 +163,8 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
         const [[{ trajanje }]] = await pool.execute(`
             SELECT SUM(Trajanje) AS trajanje
             FROM storitve
-            WHERE ID IN (?)`,
-            [storitve]
+            WHERE ID IN (${placeholders})`,
+            storitve
         );
 
         if (!trajanje) {
@@ -387,12 +389,15 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
             return res.status(404).json({ message: 'Izbrani frizer ne obstaja.' });
         }
 
+        const placeholders = storitve.map(() => '?').join(',');
+
         // Storitve
         const [storitveRows] = await pool.execute(`
             SELECT ID, Ime, Cena, Trajanje 
             FROM storitve 
-            WHERE ID IN (?)`,
-            [storitve]);
+            WHERE ID IN (${placeholders})`,
+            storitve
+        );
 
         if (storitveRows.length !== storitve.length) {
             return res.status(400).json({ message: 'Navedene storitve niso veljavne.' });
@@ -404,8 +409,9 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
              SUM(s.Cena) AS skupna_cena,
              SUM(s.Trajanje) AS skupno_trajanje
             FROM storitve s
-            WHERE s.ID IN (?)`,
-            [storitve]);
+            WHERE s.ID IN (${placeholders})`,
+            storitve
+        );
 
         const skupna_cena = Number(row.skupna_cena);
         const skupno_trajanje = Number(row.skupno_trajanje);
@@ -419,8 +425,8 @@ router.post('/predogled', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'), a
             SELECT s.ID 
             FROM storitve s
             JOIN specializacija sp ON s.Ime = sp.Naziv 
-            WHERE sp.Frizerji_id = ? AND s.ID IN (?)`,
-            [frizer_ID, storitve]);
+            WHERE sp.Frizerji_id = ? AND s.ID IN (${placeholders})`,
+            [frizer_ID, ...storitve]);
 
         if (frizer_storitve.length !== storitve.length) {
             return res.status(400).json({ message: 'Frizer ne izvaja vseh izbranih storitev.' });
@@ -628,9 +634,9 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
             return res.status(404).json({ message: 'Izbrani frizer ne obstaja.' });
         }
 
-        // Preveri, ali frizer izvaja izbrane storitve
         const placeholders = storitve.map(() => '?').join(',');
 
+        // Preveri, ali frizer izvaja izbrane storitve
         const sql = 
             `SELECT s.ID 
             FROM storitve s

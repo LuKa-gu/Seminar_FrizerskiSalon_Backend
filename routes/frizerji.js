@@ -391,7 +391,7 @@ router.get('/jaz', auth.avtentikacijaJWT, (req, res) => {
  *                   example: Napaka na strežniku.
  */
 // Pridobivanje vseh frizerjev
-router.get('/', async (res, next) => {
+router.get('/', async (req, res, next) => {
     try {
         const [rows] = await pool.execute('SELECT ID, Ime, Priimek FROM frizerji');
         const result = rows.map(row => ({
@@ -485,7 +485,7 @@ router.get('/', async (res, next) => {
  *                   example: Napaka na strežniku.
  */
 // Pridobivanje informacij o vseh frizerjih
-router.get('/info', async (res, next) => {
+router.get('/info', async (req, res, next) => {
     try {
         const [rows] = await pool.execute(`
             SELECT 
