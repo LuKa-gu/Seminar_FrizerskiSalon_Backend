@@ -749,13 +749,15 @@ router.get('/termini', auth.avtentikacijaJWT, auth.dovoliRole('frizer'), async (
  *                           example: 30
  *                         cena:
  *                           type: number
- *                           example: 15
+ *                           format: decimal
+ *                           example: 15.00
  *                   skupno_trajanje:
  *                     type: integer
  *                     example: 75
  *                   skupna_cena:
  *                     type: number
- *                     example: 45
+ *                     format: decimal
+ *                     example: 45.00
  *                   opombe:
  *                     type: string
  *                     nullable: true

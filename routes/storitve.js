@@ -38,8 +38,9 @@ const auth = require('../utils/auth.js');
  *                 type: integer
  *                 example: 60
  *               Cena:
- *                 type: string
- *                 example: "15.00"
+ *                 type: number
+ *                 format: decimal
+ *                 example: 15.00
  *     responses:
  *       201:
  *         description: Storitev uspešno dodana
@@ -228,8 +229,9 @@ router.get('/', async (req, res, next) => {
  *                   type: integer
  *                   example: 60
  *                 Cena:
- *                   type: string
- *                   example: "15.00"
+ *                   type: number
+ *                   format: decimal
+ *                   example: 15.00
  *       400:
  *         description: Neveljaven format parametra 'naziv'
  *         content:
@@ -307,8 +309,9 @@ router.get('/:idNaziv', utils.resolveStoritev, (req, res) => {
  *                 type: integer
  *                 example: 75
  *               Cena:
- *                 type: string
- *                 example: "20.00"
+ *                 type: number
+ *                 format: decimal
+ *                 example: 15.00
  *     responses:
  *       200:
  *         description: Storitev uspešno posodobljena

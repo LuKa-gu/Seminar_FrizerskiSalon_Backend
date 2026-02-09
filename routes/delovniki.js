@@ -13,6 +13,7 @@ const auth = require('../utils/auth.js');
  *       Pridobi seznam vseh delovnikov za prijavljenega frizerja.
  *       Vsak delovnik ima svoj `datum` in čas `začetka` ter `konca`.
  *       Vsak delovnik vsebuje tudi `URL`, ki vsebuje `ID` delovnika, za posodobitev ali brisanje delovnika.
+ *       Če ni rezerviran noben delovnik, se vrne prazen seznam `delovniki_url` in sporočilo "Rezerviran ni noben delovnik."
  *     tags:
  *       - Delovniki
  *     security:

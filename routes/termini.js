@@ -13,6 +13,7 @@ const auth = require('../utils/auth.js');
  *       Vrne seznam možnih `začetnih ur` termina za izbranega `frizerja`, `dan` in kombinacijo `storitev`.
  *       Sistem upošteva `delovni čas` frizerja, `trajanje` izbranih storitev ter že obstoječe `rezervacije`.
  *       Endpoint ne ustvarja rezervacije, ampak služi izključno informativnemu preverjanju.
+ *       V primeru praznega seznama `razpolozljivi_bloki` se vrne tudi message `razlog`, ki sporoča, zakaj ni razpoložljivih terminov.
  *     tags:
  *       - Termini
  *     security:
@@ -289,7 +290,8 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *                         example: 30
  *                       cena:
  *                         type: number
- *                         example: 15
+ *                         format: decimal
+ *                         example: 15.00
  *                 zacetek_termina:
  *                   type: string
  *                   example: 2025-06-10 14:00:00
@@ -301,7 +303,8 @@ router.post('/razpolozljivost', auth.avtentikacijaJWT, auth.dovoliRole('uporabni
  *                   example: 75
  *                 skupna_cena:
  *                   type: number
- *                   example: 45
+ *                   format: decimal
+ *                   example: 45.00
  *                 opombe:
  *                   type: string
  *                   nullable: true
@@ -776,7 +779,8 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *                           example: 30
  *                         cena:
  *                           type: number
- *                           example: 15
+ *                           format: decimal
+ *                           example: 15.00
  *                   zacetek_termina:
  *                     type: string
  *                     example: 2025-06-10 14:00:00
@@ -788,7 +792,8 @@ router.post('/rezervacija', auth.avtentikacijaJWT, auth.dovoliRole('uporabnik'),
  *                     example: 75
  *                   skupna_cena:
  *                     type: number
- *                     example: 45
+ *                     format: decimal
+ *                     example: 45.00
  *                   opombe:
  *                     type: string
  *                     nullable: true
